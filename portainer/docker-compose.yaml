@@ -1,0 +1,11 @@
+services:
+    portainer:
+      image: portainer/portainer-ce:latest
+      container_name: portainer
+      restart: always
+      privileged: true
+      volumes:
+        - /home/vol-docker/portainer/container-data/data:/data
+        - /var/run/docker.sock:/var/run/docker.sock
+      ports:
+        - 9443:9443
