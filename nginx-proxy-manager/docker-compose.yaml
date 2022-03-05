@@ -15,8 +15,8 @@ services:
       - DB_MYSQL_PASSWORD=${DB_MYSQL_PASSWORD}
       - DB_MYSQL_NAME=npm
     volumes:
-      - /home/vol-docker/nginx-proxy-manager/container-data/data:/data
-      - /home/vol-docker/nginx-proxy-manager/container-data/letsencrypt:/etc/letsencrypt
+      - ./container-data/data:/data
+      - ./container-data/letsencrypt:/etc/letsencrypt
     networks:
       - nginx-proxy-manager-nw
       - reverseproxy
@@ -31,7 +31,7 @@ services:
       - MYSQL_PASSWORD=${DB_MYSQL_PASSWORD}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     volumes:
-      - /home/vol-docker/nginx-proxy-manager/container-data/mysql:/var/lib/mysql
+      - ./container-data/mysql:/var/lib/mysql
     networks:
       - nginx-proxy-manager-nw
 

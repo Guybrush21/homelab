@@ -8,10 +8,10 @@ services:
     #   - "80:80"
     #   - "443:443"
     volumes:
-      - /home/vol-docker/caddy/container-data/Caddyfile:/etc/caddy/Caddyfile
-      - /home/vol-docker/caddy/container-data//site:/srv
-      - /home/vol-docker/caddy/container-data/caddy_data:/data
-      - /home/vol-docker/caddy/container-data/caddy_config:/config
+      - ./container-data/Caddyfile:/etc/caddy/Caddyfile
+      - ./container-data//site:/srv
+      - ./container-data/caddy_data:/data
+      - ./container-data/caddy_config:/config
     networks: 
       - reverseproxy
 

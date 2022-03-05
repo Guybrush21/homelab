@@ -5,7 +5,7 @@ services:
       restart: always
       privileged: true
       volumes:
-        - /home/vol-docker/portainer/container-data/data:/data
+        - ./container-data/data:/data
         - /var/run/docker.sock:/var/run/docker.sock
       networks:
         - reverseproxy
