@@ -12,5 +12,11 @@ services:
       - /home/vol-docker/gitea/container-data/data:/data
       - /etc/timezone:/etc/timezone
       - /etc/localtime:/etc/localtime
-    ports:
-      - "3000:3000"
+#    ports:
+#      - "3000:3000"
+    networks: 
+      - reverseproxy
+
+networks: 
+    reverseproxy:
+        external: true

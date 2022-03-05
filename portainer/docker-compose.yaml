@@ -7,5 +7,11 @@ services:
       volumes:
         - /home/vol-docker/portainer/container-data/data:/data
         - /var/run/docker.sock:/var/run/docker.sock
-      ports:
-        - 9443:9443
+      networks:
+        - reverseproxy
+#      ports:
+#        - 9443:9443
+
+networks:
+    reverseproxy:
+        external: true
