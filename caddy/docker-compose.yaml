@@ -9,7 +9,7 @@ services:
     #   - "443:443"
     volumes:
       - ./container-data/Caddyfile:/etc/caddy/Caddyfile
-      - ./container-data//site:/srv
+      - ./container-data/site:/srv
       - ./container-data/caddy_data:/data
       - ./container-data/caddy_config:/config
     networks: 
