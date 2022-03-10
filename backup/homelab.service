@@ -1,0 +1,9 @@
+[Unit]
+Description=A job to backup the homelab containers
+
+[Service]
+Type=simple
+ExecStart=/home/vol-docker/backup.sh
+
+[Install]
+WantedBy=default.target

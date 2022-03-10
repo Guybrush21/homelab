@@ -1,0 +1,33 @@
+---
+version: "2.1"
+services:
+  wireguard:
+    image: ghcr.io/linuxserver/wireguard
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Rome
+      - SERVERURL=ssh.elaine.pw #set this to your public hostname or IP
+      - SERVERPORT=51820 #optional for running on a different port
+      - PEERS=1 #optional for increasing # of allowed connected clients
+      - PEERDNS=auto #optional "auto" will use Host's DNS
+      - INTERNAL_SUBNET=10.13.13.0 #optional change wireguard client subnet
+      - ALLOWEDIPS=0.0.0.0/0 #optional only allow certain client IPs to connect
+    volumes:
+      - ./container-data/config:/config
+      - /.container-data/lib/modules:/lib/modules
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+#     networks:
+#       - reverseproxy
+
+# networks:
+#   reverseproxy: 
+#     external: true
