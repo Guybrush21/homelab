@@ -2,14 +2,13 @@ version: "3.7"
 
 services:
   caddy:
+    container_name: caddy
     image: caddy:latest
     restart: unless-stopped
     # ports:
     #   - "80:80"
     #   - "443:443"
-    volumes:
-      - ./container-data/Caddyfile:/etc/caddy/Caddyfile
-      - ./container-data/site:/srv
+    volumes:            
       - ./container-data/caddy_data:/data
       - ./container-data/caddy_config:/config
     networks: 
