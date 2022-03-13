@@ -70,6 +70,7 @@ services:
 
 networks:
   minio:
+    external: true
   reverseproxy:
     external: true
 
