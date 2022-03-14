@@ -15,6 +15,7 @@ x-minio-common: &minio-common
     interval: 30s
     timeout: 20s
     retries: 3
+  restart: unless-stopped
   networks:
       - minio
 
@@ -64,6 +65,7 @@ services:
       - minio2
       - minio3
       - minio4
+    restart: unless-stopped
     networks:
       - minio
       - reverseproxy
