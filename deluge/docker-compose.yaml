@@ -1,0 +1,26 @@
+---
+version: "2.1"
+services:
+  deluge:
+    image: lscr.io/linuxserver/deluge
+    container_name: deluge
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Rome
+      - DELUGE_LOGLEVEL=info #optional
+    volumes:
+      - ./container-data/config:/config
+      - /home/jigen/media:/downloads
+    ports:
+      #- 8112:8112
+      - "50101-50300:50101-50300"
+      - "50101-50300:50101-50300/udp"
+    restart: unless-stopped
+    networks: 
+      default:
+      reverseproxy:
+
+networks:
+  reverseproxy:
+    external: true
