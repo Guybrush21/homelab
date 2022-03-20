@@ -1,7 +1,7 @@
 version: '3'
 services:
   netdata:
-    image: netdata/netdata
+    image: netdata/netdata:stable
     container_name: netdata
     hostname: elaine # set to fqdn of host
     expose: 
@@ -14,7 +14,7 @@ services:
     security_opt:
       - apparmor:unconfined
     volumes:
-      - netdataconfig:/etc/netdata
+      - ./container-data/netdataconfig:/etc/netdata:ro
       - netdatalib:/var/lib/netdata
       - netdatacache:/var/cache/netdata
       - /etc/passwd:/host/etc/passwd:ro
@@ -24,12 +24,26 @@ services:
       - /etc/os-release:/host/etc/os-release:ro
     networks:
       - reverseproxy
+      - netdata
+    environment:
+      - DOCKER_HOST=docker-proxy:2375
+
+  proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: docker-proxy
+    networks:
+      - netdata
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
 
 volumes:
-  netdataconfig:
+  #netdataconfig:
   netdatalib:
   netdatacache:
 
 networks:
   reverseproxy:
     external: true
+  netdata:
