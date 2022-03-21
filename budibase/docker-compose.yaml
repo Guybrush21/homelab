@@ -1,6 +1,9 @@
 version: "3"
 
 # optional ports are specified throughout for more advanced use cases.
+networks:
+  reverseproxy:
+    external: true
 
 services:
   app-service:
@@ -79,6 +82,9 @@ services:
       - worker-service
       - app-service
       - couchdb-service
+    networks:
+      - default
+      - reverseproxy
 
   couchdb-service:
     restart:  unless-stopped
