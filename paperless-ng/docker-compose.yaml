@@ -1,0 +1,46 @@
+version: "3.4"
+
+networks:
+  postgres:
+    external: true
+  reverseproxy:
+    external: true
+  default:
+
+services:
+  broker:
+    image: redis:6.0
+    restart: unless-stopped
+    networks:
+      - default
+
+  webserver:
+    container_name: paperless
+    image: jonaswinkler/paperless-ng:latest
+    restart: unless-stopped
+    depends_on:      
+      - broker
+    expose:
+      - 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./container-data/data:/usr/src/paperless/data
+      - ./container-data/media:/usr/src/paperless/media
+      - ./container-data/export:/usr/src/paperless/export
+      - ./container-data/consume:/usr/src/paperless/consume
+    env_file: docker-compose.env
+    environment:
+      PAPERLESS_REDIS: redis://broker:6379      
+      PAPERLESS_DBNAME: ${PAPERLESS_DBNAME}
+      PAPERLESS_DBUSER: ${PAPERLESS_DBUSER}
+      PAPERLESS_DBPASS: ${PAPERLESS_DBPASS}
+      PAPERLESS_DBHOST: ${PAPERLESS_DBHOST}
+
+    networks:
+      - reverseproxy
+      - default
+      - postgres
