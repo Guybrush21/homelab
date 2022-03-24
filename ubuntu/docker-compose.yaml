@@ -1,0 +1,15 @@
+# docker create network postgres
+
+version: '3.5'
+
+services:
+  ubuntu:
+    container_name: ubuntu
+    image: ubuntu    
+    tty: true
+    networks:
+      - postgres
+    
+networks:
+  postgres:
+    external: true
