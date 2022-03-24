@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    expose: 
+      - 9090
+    volumes:
+      - ./container-data/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus:rw
+    #command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
+    networks: 
+      - reverseproxy
+
+volumes:
+  prometheus-data:
+
+networks:
+  reverseproxy:
+    external: true
