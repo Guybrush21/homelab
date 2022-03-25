@@ -11,6 +11,9 @@ services:
     volumes:
       - ./container-data/config:/config      
       - /home/jigen/media/film:/data/movies
+      - /home/jigen/media/music:/data/music
+      - /home/jigen/media/books:/data/books
+      - /home/jigen/media/tvseries:/data/tvseries
     group_add:
       - "989"
       - "985"
