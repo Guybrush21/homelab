@@ -1,0 +1,50 @@
+version: '3'
+ 
+services:
+  samba:
+    #ild: .
+    container_name: samba
+    image: servercontainers/samba
+    restart: always
+    network_mode: host
+    # uncomment to solve bug: https://github.com/ServerContainers/samba/issues/50 - wsdd2 only - not needed for samba
+    #cap_add:
+    #  - CAP_NET_ADMIN
+    environment:
+      MODEL: 'TimeCapsule'
+      AVAHI_NAME: StorageServer
+
+      SAMBA_CONF_LOG_LEVEL: 3
+
+      # uncomment to disable optional services
+      #WSDD2_DISABLE: 1
+      #AVAHI_DISABLE: 1
+
+      GROUP_family: 1500
+
+      ACCOUNT_nic: ${ACCOUNT_NIC}
+      UID_nic: 1000
+      GROUPS_nic: family
+     
+
+      SAMBA_VOLUME_CONFIG_shared_home: "[Media]; path=/media/; valid users = nic; guest ok = no; read only = no; browseable = yes"
+
+      # SAMBA_VOLUME_CONFIG_aliceonly: "[Alice Share]; path=/shares/alice; valid users = alice; guest ok = no; read only = no; browseable = yes"
+      # SAMBA_VOLUME_CONFIG_alicehidden: "[Alice Hidden Share]; path=/shares/alice-hidden; valid users = alice; guest ok = no; read only = no; browseable = no"
+
+      # SAMBA_VOLUME_CONFIG_bobonly: "[Bob Share]; path=/shares/bob; valid users = bob; guest ok = no; read only = no; browseable = yes"
+      
+      # SAMBA_VOLUME_CONFIG_public: "[Public]; path=/shares/public; valid users = alice, bob, foo; guest ok = no; read only = no; browseable = yes; force group = family"
+      # SAMBA_VOLUME_CONFIG_public_ro: "[Public ReadOnly]; path=/shares/public; guest ok = yes; read only = yes; browseable = yes; force group = family"
+      
+      SAMBA_VOLUME_CONFIG_timemachine: "[TimeMachine]; path=/shares/timemachine/%U; valid users = nic; guest ok = no; read only = no; browseable = yes; fruit:time machine = yes; fruit:time machine max size = 500G"
+    volumes:
+      - /etc/avahi/services/:/external/avahi
+      
+      # avoid loops when mounting folders to /shares (I'd recommend explicit mapping for each share)
+      # - ./shares/alice:/shares/alice
+      # - ./shares/alice-hidden:/shares/alice-hidden
+      # - ./shares/bob:/shares/bob
+      # - ./shares/public:/shares/public
+      # - ./shares/homes:/shares/homes
+      - /home/jigen/media:/media
