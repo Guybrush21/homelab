@@ -13,6 +13,8 @@ services:
       - /home/jigen/media/film:/data/movies
       - /home/jigen/media/music:/data/music      
       - /home/jigen/media/tvseries:/data/tvseries
+      - /home/jigen/media/books:/data/books
+
     group_add:
       - "989"
       - "985"
