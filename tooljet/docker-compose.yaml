@@ -1,0 +1,50 @@
+version: '3'
+
+services:
+  client:
+    tty: true
+    stdin_open: true
+    container_name: tooljet_client
+    image: tooljet/tooljet-client-ce:latest
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - server
+    volumes:
+      - logs:/var/log/openresty/
+      - certs:/etc/resty-auto-ssl/
+      - fallbackcerts:/etc/fallback-certs
+    expose:
+      - 443
+    command: openresty -g "daemon off;"
+    networks:
+      - reverseproxy
+      - default
+
+  server:
+    image: tooljet/tooljet-server-ce:latest
+    tty: true
+    stdin_open: true
+    container_name: tooljet_server
+    restart: unless-stopped
+    expose:
+      - 3000
+    env_file: .env
+    environment:
+      SERVE_CLIENT: "false"
+    command: npm run start:prod
+    networks:
+      - postgres
+      - default
+
+networks:
+  default:
+  reverseproxy:
+    external: true
+  postgres:
+    external: true
+
+volumes:
+  certs:
+  logs:
+  fallbackcerts:

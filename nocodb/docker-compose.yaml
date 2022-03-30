@@ -1,0 +1,18 @@
+services: 
+  nocodb:
+    container_name: nocodb
+    image: nocodb/nocodb:latest
+    expose:
+      - 8080
+    restart: always
+    volumes:
+      - ./container-data/noco_data:/usr/app/data
+    # environment:
+    #   NC_DB: "pg://root_db:5432?u=postgres&p=password&d=root_db"
+    networks:
+      - reverseproxy
+
+networks:
+  reverseproxy:
+    external: true
+    
