@@ -3,6 +3,7 @@ version: '3'
 services:
   prometheus:
     container_name: prometheus
+    restart: unless-stopped
     image: prom/prometheus:latest
     expose: 
       - 9090
