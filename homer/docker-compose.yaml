@@ -3,16 +3,12 @@ version: "2"
 services:
   homer:
     image: b4bz/homer
-    #To build from source, comment previous line and uncomment below
-    #build: .
     container_name: homer
     volumes:
       - ./container-data/assets/:/www/assets
-    #ports:
-    #  - 8080:8080
-    environment:
-      - UID=1001
-      - GID=1001
+    expose: 
+      - 8080
+    user: 1001:1001
     restart: unless-stopped
     networks: 
       - reverseproxy
