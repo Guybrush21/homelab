@@ -12,8 +12,9 @@ services:
       - ./container-data/data:/data
       - ./container-data/etc/timezone:/etc/timezone
       - ./container-data/etc/localtime:/etc/localtime
-#    ports:
-#      - "3000:3000"
+    expose:
+      - 3000
+      - 22
     networks: 
       - reverseproxy
 
