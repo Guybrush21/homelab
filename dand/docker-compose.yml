@@ -1,0 +1,13 @@
+version: "3.3"
+services:
+  dand:
+    container_name: dand
+    image: "ghcr.io/guybrush21/dand-local:main"
+    expose:
+      - 80
+    networks: 
+      - reverseproxy
+
+networks:
+  reverseproxy:
+    external: true
