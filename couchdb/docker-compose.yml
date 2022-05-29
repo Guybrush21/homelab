@@ -1,0 +1,19 @@
+version: '3'
+services:
+  couchserver:
+    container_name: couchdb
+    image: couchdb
+    restart: unless-stopped
+    expose:
+      - 5984
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+    volumes:
+        - ./container-data/dbdata:/opt/couchdb/data    
+    networks: 
+        - reverseproxy
+
+networks:
+    reverseproxy:
+        external: true
