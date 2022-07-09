@@ -10,7 +10,8 @@ services:
       - COUCHDB_USER=${COUCHDB_USER}
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
     volumes:
-        - ./container-data/dbdata:/opt/couchdb/data    
+        - ./container-data/dbdata:/opt/couchdb/data  
+        - ./config:/opt/couchdb/etc/local.d  
     networks: 
         - reverseproxy
 
