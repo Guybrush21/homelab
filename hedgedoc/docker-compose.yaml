@@ -1,0 +1,31 @@
+version: '3'
+services:
+  app:
+    # Make sure to use the latest release from https://hedgedoc.org/latest-release
+    image: quay.io/hedgedoc/hedgedoc:1.9.4
+    container_name: hedgedoc
+    environment:
+      - CMD_DB_URL=postgres://${POSTGRES_USER}:${POSTGRES_PWD}@postgres:5432/hedgedoc
+      - CMD_DOMAIN=hedgedoc.elaine.pw
+      - CMD_URL_ADDPORT=true
+      - CMD_PROTOCOL_USESSL=true
+      - CMD_HSTS_ENABLE=true
+    volumes:
+      - .container-data/upload:/hedgedoc/public/uploads
+    expose:
+      - 3000
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - postgres
+      - reverseproxy
+
+networks:
+  postgres:
+    external: true
+  reverseproxy:
+    external: true
+  default:
+
+  
