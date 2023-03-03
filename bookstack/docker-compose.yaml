@@ -1,0 +1,45 @@
+---
+version: "3"
+services:
+  bookstack:
+    image: lscr.io/linuxserver/bookstack
+    container_name: bookstack
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - APP_URL=https://bookstack.elaine.pw
+      - DB_HOST=bookstack_db
+      - DB_USERNAME=bookstack
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=bookstackapp
+    volumes:
+      - ./container-data/config:/config
+    expose:
+      - 81
+    restart: unless-stopped
+    depends_on:
+      - bookstack_db
+    networks: 
+      - reverseproxy
+  bookstack_db:
+    image: lscr.io/linuxserver/mariadb
+    container_name: bookstack_db
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MYSQL_ROOT_PASSWORD=${ROOT_DB}
+      - TZ=Europe/Rome
+      - MYSQL_DATABASE=bookstackapp
+      - MYSQL_USER=bookstack
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./container-data/db:/config
+    networks:
+      - reverseproxy
+    restart: unless-stopped
+
+networks: 
+  reverseproxy:
+      external: true
+
+
