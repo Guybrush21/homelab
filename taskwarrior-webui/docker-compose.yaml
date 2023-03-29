@@ -1,0 +1,18 @@
+---
+version: "2.1"
+services:
+  deluge:
+    image: dcsunset/taskwarrior-webui
+    container_name: taskwarrior-webui
+    volumes:
+      - ./container-data/.taskrc:/.taskrc
+      - ./container-data/.task:/.task
+    ports:
+      - 8080:80
+    restart: unless-stopped
+    networks: 
+      reverseproxy:
+
+networks:
+  reverseproxy:
+    external: true
