@@ -1,0 +1,21 @@
+version: '2'
+services:
+    adguardhome:
+        image: adguard/adguardhome
+        container_name: adguardhome
+        ports: 
+          - 53:53/tcp
+          - 53:53/udp
+          - 853:853/tcp 
+        
+        expose:
+          - 80
+        volumes: 
+          - ./container-data/work:/opt/adguardhome/work
+          - ./container-data/conf:/opt/adguardhome/conf
+        networks:
+          - reverseproxy
+        restart: unless-stopped
+networks:
+  reverseproxy:
+    external: true
