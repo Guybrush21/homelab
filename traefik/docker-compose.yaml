@@ -1,0 +1,29 @@
+version: "3.3"
+services:
+  traefik:
+    image: "traefik:v2.10"
+    container_name: "traefik"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./container-data/traefik.yml:/etc/traefik/traefik.yml"
+      - "./container-data/letsencrypt:/letsencrypt"
+    environment:
+      CF_DNS_API_TOKEN: "Axi-te_jSV-0q46uQztSnDLzU8S06VkJ5tv4O57u"
+      CF_API_EMAIL: "nicholasp21@gmail.com" 
+    networks:
+      - reverseproxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=cfresolver"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=elaine.pw"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.elaine.pw"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+networks:
+  reverseproxy:
+    external: true
+  traefik:
