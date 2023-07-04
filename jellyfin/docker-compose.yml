@@ -10,6 +10,7 @@ services:
       - JELLYFIN_PublishedServerUrl=jellyfin.elaine.pw #optional
     volumes:
       - ./container-data/config:/config      
+      - ./container-data/cache:/cache
       - /home/jigen/media/film:/data/movies
       - /home/jigen/media/music:/data/music      
       - /home/jigen/media/tvseries:/data/tvseries
@@ -19,8 +20,8 @@ services:
       - "989"
       - "985"
     expose:
-      - 8096:8096
       - 8920:8920 #optional
+      - 8096:8096
       - 7359:7359/udp #optional
       - 1900:1900/udp #optional
     devices:     
@@ -29,7 +30,10 @@ services:
     restart: unless-stopped
     networks:
       - reverseproxy
-
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.jellyfin.tls.certresolver: "cfresolver"
+      traefik.http.services.jellyfin.loadbalancer.server.port: 8096
 networks:
   reverseproxy:
     external: true

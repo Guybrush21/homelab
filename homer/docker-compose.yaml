@@ -12,6 +12,10 @@ services:
     restart: unless-stopped
     networks: 
       - reverseproxy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.homer.tls.certresolver: "cfresolver"
+
 
 networks:
   reverseproxy: 

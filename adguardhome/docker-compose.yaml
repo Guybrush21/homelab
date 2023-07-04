@@ -16,6 +16,10 @@ services:
         networks:
           - reverseproxy
         restart: unless-stopped
+        labels:
+          traefik.enable: "true"
+          traefik.http.routers.adguardhome.tls.certresolver: "cfresolver"
+          traefik.http.services.adguardhome.loadbalancer.server.port: 80 
 networks:
   reverseproxy:
     external: true
