@@ -12,8 +12,8 @@ services:
       - "./container-data/traefik.yml:/etc/traefik/traefik.yml"
       - "./container-data/letsencrypt:/letsencrypt"
     environment:
-      CF_DNS_API_TOKEN: "Axi-te_jSV-0q46uQztSnDLzU8S06VkJ5tv4O57u"
-      CF_API_EMAIL: "nicholasp21@gmail.com" 
+      CF_DNS_API_TOKEN: ${CLOUDFARE_DNS_API_TOKEN} 
+      CF_API_EMAIL: ${CLOUDFARE_API_EMAIL} 
     networks:
       - reverseproxy
     labels:
