@@ -16,6 +16,7 @@ services:
       CF_API_EMAIL: ${CLOUDFARE_API_EMAIL} 
     networks:
       - reverseproxy
+    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-secure.tls=true"

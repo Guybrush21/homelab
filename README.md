@@ -60,7 +60,7 @@ I’ve bought the elaine.pw domain in [namecheap](https://www.namecheap.com/) in
 With some black magic about DNS I’ve managed to use it in [Cloudflare](https://www.cloudflare.com). Cloudflare is resolving to my homelab server thanks to the ddclient container. It’s configuration is pretty simple.
 
 ## Reverse Proxy
-
+_todo: rewrite this for trafik_
 Reverse proxy is done with the great [nginx-proxy-manger](https://nginxproxymanager.com/) which is just a nice ui for nginx with [Let’s Encrypt](https://letsencrypt.org/) utilities built-in.
 
 Basically the only ports forwared from my router to the homelab are the 80 and 443. These are exposed by the nginx-proxy-manager container that then will internally forward incoming connections to the proper container using subdomain like homer.elaine.pw or appsmith.elaine.pw etc. Inside the nginx-proxy-manager you can create a SSL certificate that then will be used for all the *.elaine.pw.
