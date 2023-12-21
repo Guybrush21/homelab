@@ -13,14 +13,17 @@ services:
       - ./container-data/config:/config
       - /home/jigen/media:/downloads
     ports:
-      #- 8112:8112
       - "50101-50300:50101-50300"
       - "50101-50300:50101-50300/udp"
+    expose: 
+      - 8112
     restart: unless-stopped
     networks: 
       default:
       reverseproxy:
-
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.deluge.tls.certresolver: "cfresolver"
 networks:
   reverseproxy:
     external: true

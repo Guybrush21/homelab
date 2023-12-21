@@ -7,7 +7,6 @@ services:
           - 53:53/tcp
           - 53:53/udp
           - 853:853/tcp 
-        
         expose:
           - 80
         volumes: 

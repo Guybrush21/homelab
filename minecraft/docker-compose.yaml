@@ -1,5 +1,5 @@
+---
 version: "3"
-
 services:
   mc:
     container_name: minecraft

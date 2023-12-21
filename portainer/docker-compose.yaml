@@ -9,9 +9,13 @@ services:
         - /var/run/docker.sock:/var/run/docker.sock
       networks:
         - reverseproxy
-#      ports:
-#        - 9443:9443
-
+      ports:
+        - 9443:9443
+      # labels:
+      #   traefik.enable: "true"
+      #   traefik.http.routers.portainer.tls.certresolver: "cfresolver"
+      #   traefik.http.services.portainer.loadbalancer.server.port: 9443
+      #
 networks:
     reverseproxy:
         external: true
