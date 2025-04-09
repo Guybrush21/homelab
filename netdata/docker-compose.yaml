@@ -6,8 +6,9 @@ services:
     hostname: elaine # set to fqdn of host
     expose: 
       - 19999
-    # ports:
-    #   - 19999:19999
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.netdata.tls.certresolver: "cfresolver"
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE

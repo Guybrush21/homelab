@@ -4,6 +4,7 @@ services:
   homer:
     image: b4bz/homer
     container_name: homer
+    restart: unless-stopped
     volumes:
       - ./container-data/assets/:/www/assets
     expose: 
