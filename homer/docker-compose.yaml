@@ -10,7 +10,6 @@ services:
     expose: 
       - 8080
     user: 1001:1001
-    restart: unless-stopped
     networks: 
       - reverseproxy
     labels:
