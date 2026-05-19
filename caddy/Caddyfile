@@ -1,0 +1,41 @@
+{
+    email nicholasp21@gmail.com
+    acme_dns cloudflare {env.CF_API_TOKEN}
+
+    default_sni elaine.pw
+}
+
+# 1. Test your actual domain name
+elaine.pw {
+    respond "Follow the white rabbit."
+}
+
+*.elaine.pw {
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+	}
+
+	@homer host homer.elaine.pw
+	handle @homer {
+		reverse_proxy homer:8080
+	}
+
+	@deluge host deluge.elaine.pw
+	handle @deluge {
+		reverse_proxy deluge:8112
+	}
+
+@umami host umami.elaine.pw
+	handle @umami {
+		reverse_proxy umami:3000
+	}
+
+@jellyfin host jellyfin.elaine.pw
+	handle @jellyfin {
+		reverse_proxy jellyfin:8096
+	}
+
+
+}
+
+

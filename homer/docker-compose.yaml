@@ -12,9 +12,6 @@ services:
     user: 1001:1001
     networks: 
       - reverseproxy
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.homer.tls.certresolver: "cfresolver"
 networks:
   reverseproxy: 
     external: true

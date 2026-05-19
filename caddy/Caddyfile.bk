@@ -1,0 +1,36 @@
+{
+	email nicholasp21@gmail.com
+	acme_dns cloudflare {env.CF_API_TOKEN}
+}
+
+# Wildcard cert for all subdomains
+*.elaine.pw {
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+	}
+
+	@homer host homer.elaine.pw
+	handle @homer {
+		reverse_proxy homer:8080
+	}
+
+	
+
+		@adguardhome host adguardhome.elaine.pw
+	handle @adguardhome {
+		reverse_proxy adguardhome:80
+	}
+
+	# Fallback for unmatched subdomains
+	handle {
+		respond "Not found" 404
+	}
+}
+
+# Root domain
+elaine.pw {
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+	}
+	respond "Caddy is working!"200
+}
