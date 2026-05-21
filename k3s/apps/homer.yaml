@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: homer-container
-          image: bbernhard/homer:v24.05.1
+          image: b4bz/homer
           ports:
             - containerPort: 8080
           # Your explicit storage rule: mounting your fast SSD directly
