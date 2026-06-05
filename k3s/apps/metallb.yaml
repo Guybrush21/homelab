@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metallb-controller
-  namespace: homelab 
+  namespace: homelab
 spec:
   replicas: 1
   selector:
@@ -21,7 +21,7 @@ apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
   name: local-ip-pool
-  namespace: homelab 
+  namespace: homelab
 spec:
   addresses:
     - 192.168.1.51-192.168.1.55
@@ -30,7 +30,7 @@ apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
 metadata:
   name: local-advertisement
-  namespace: homelab 
+  namespace: homelab
 spec:
   ipAddressPools:
     - local-ip-pool
