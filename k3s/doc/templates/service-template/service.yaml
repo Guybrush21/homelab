@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: SERVICE_NAME-service
+  namespace: NAMESPACE
+  labels:
+    app: SERVICE_NAME
+spec:
+  type: ClusterIP  # Options: ClusterIP, NodePort, LoadBalancer
+  selector:
+    app: SERVICE_NAME
+  ports:
+  - protocol: TCP
+    port: SERVICE_PORT        # Port exposed by the Service
+    targetPort: CONTAINER_PORT  # Port on the container
+    name: http
+  
+  # For LoadBalancer type (uncomment and adjust):
+  # type: LoadBalancer
+  # loadBalancerIP: 192.168.178.50  # Optional: request specific IP
+  
+  # For headless service (StatefulSet):
+  # clusterIP: None

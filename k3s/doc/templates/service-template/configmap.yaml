@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: SERVICE_NAME-config
+  namespace: NAMESPACE
+  labels:
+    app: SERVICE_NAME
+data:
+  # Simple key-value pairs
+  app.environment: "production"
+  log.level: "info"
+  
+  # Configuration files
+  app.conf: |
+    # Your configuration file content here
+    server {
+      listen 80;
+      server_name localhost;
+    }
+  
+  # Another config file
+  # nginx.conf: |
+  #   events {}
+  #   http {
+  #     server {
+  #       listen 80;
+  #     }
+  #   }

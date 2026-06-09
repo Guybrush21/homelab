@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: SERVICE_NAME
+  namespace: NAMESPACE
+  labels:
+    app: SERVICE_NAME
+  annotations:
+    description: "Description of the service"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: SERVICE_NAME
+  template:
+    metadata:
+      labels:
+        app: SERVICE_NAME
+        version: "1.0"
+    spec:
+      # Uncomment if need to wait for dependencies
+      # initContainers:
+      # - name: wait-for-dependency
+      #   image: busybox
+      #   command: ['sh', '-c', 'until nslookup dependency-service; do sleep 2; done']
+      
+      containers:
+      - name: SERVICE_NAME
+        image: IMAGE_NAME:TAG
+        
+        ports:
+        - containerPort: CONTAINER_PORT
+          name: http
+          protocol: TCP
+        
+        # Environment variables
+        env:
+        - name: ENV_VAR_NAME
+          value: "value"
+        # From ConfigMap
+        # - name: CONFIG_VAR
+        #   valueFrom:
+        #     configMapKeyRef:
+        #       name: SERVICE_NAME-config
+        #       key: key-name
+        # From Secret
+        # - name: SECRET_VAR
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: SERVICE_NAME-secret
+        #       key: key-name
+        
+        # Volume mounts
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        # - name: config
+        #   mountPath: /config/app.conf
+        #   subPath: app.conf
+        
+        # Resource limits
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /
+            port: CONTAINER_PORT
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /
+            port: CONTAINER_PORT
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # Security context
+        # securityContext:
+        #   runAsUser: 1000
+        #   runAsGroup: 1000
+        #   allowPrivilegeEscalation: false
+        #   readOnlyRootFilesystem: true
+      
+      # Pod-level security
+      # securityContext:
+      #   fsGroup: 1000
+      
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: SERVICE_NAME-data
+      # - name: config
+      #   configMap:
+      #     name: SERVICE_NAME-config
+      
+      # Restart policy
+      restartPolicy: Always

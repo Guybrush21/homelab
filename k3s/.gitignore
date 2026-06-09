@@ -1,0 +1,34 @@
+# Secrets - NEVER commit secrets!
+**/secret.yaml
+**/secrets.yaml
+**/*-secret.yaml
+**/*-secrets.yaml
+
+# Except example files
+!**/*.example
+!**/secret.yaml.example
+
+# SOPS encrypted files are OK (they end with .enc.yaml)
+# These are already encrypted
+!**/*.enc.yaml
+
+# Kubernetes generated files
+**/.kube/
+**/kubeconfig
+
+# Flux generated files
+flux-system/gotk-*.yaml
+flux-system/kustomization.yaml
+
+# Temporary files
+**/*.tmp
+**/*.bak
+**/*~
+
+# IDE files
+**/.vscode/
+**/.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

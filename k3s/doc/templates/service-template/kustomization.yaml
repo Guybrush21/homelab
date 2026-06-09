@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace for all resources
+namespace: NAMESPACE
+
+# Resources to include
+resources:
+  # Uncomment the files you need:
+  # - namespace.yaml      # Only if creating a new namespace
+  - deployment.yaml
+  - service.yaml
+  # - ingress.yaml        # If exposing via HTTP
+  # - pvc.yaml            # If need persistent storage
+  # - configmap.yaml      # If have configuration files
+  # Note: Don't include secret.yaml - create secrets via kubectl or SOPS
+
+# Common labels applied to all resources
+commonLabels:
+  app: SERVICE_NAME
+  managed-by: flux
+
+# Common annotations
+commonAnnotations:
+  migrated-from: "docker-compose"
+
+# ConfigMap generator (alternative to configmap.yaml)
+# configMapGenerator:
+# - name: SERVICE_NAME-config
+#   files:
+#     - config/app.conf
+#   literals:
+#     - ENV=production
+
+# Secret generator (DO NOT USE for production - use SOPS instead!)
+# secretGenerator:
+# - name: SERVICE_NAME-secret
+#   literals:
+#     - username=user
+#     - password=pass
+
+# Images (for managing versions)
+# images:
+# - name: IMAGE_NAME
+#   newTag: NEW_TAG
+
+# Patches (for customization)
+# patchesStrategicMerge:
+# - patch-deployment.yaml
+
+# Replicas (override replicas in deployment)
+# replicas:
+# - name: SERVICE_NAME
+#   count: 3

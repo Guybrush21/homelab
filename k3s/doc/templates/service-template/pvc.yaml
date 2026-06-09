@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: SERVICE_NAME-data
+  namespace: NAMESPACE
+  labels:
+    app: SERVICE_NAME
+spec:
+  accessModes:
+    - ReadWriteOnce  # Options: ReadWriteOnce, ReadOnlyMany, ReadWriteMany
+  
+  resources:
+    requests:
+      storage: 5Gi  # Adjust size as needed
+  
+  # Use specific StorageClass (optional)
+  # storageClassName: local-path
+  
+  # For dynamic provisioning, omit volumeName
+  # For static PV, specify:
+  # volumeName: SERVICE_NAME-pv
+
+---
+# Additional PVC if needed (e.g., separate config and data)
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: SERVICE_NAME-config
+#   namespace: NAMESPACE
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 1Gi
