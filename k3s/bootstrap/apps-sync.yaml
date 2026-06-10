@@ -7,7 +7,7 @@ metadata:
 spec:
   interval: 1m0s
   ref:
-    branch: master # <-- Nota: master, non main
+    branch: master
   url: ssh://git@github.com/Guybrush21/homelab.git
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
