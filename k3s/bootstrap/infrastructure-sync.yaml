@@ -22,4 +22,3 @@ spec:
   sourceRef:
     kind: GitRepository
     name: homelab-infrastructure
-  validation: client
