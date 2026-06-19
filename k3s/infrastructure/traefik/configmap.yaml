@@ -27,6 +27,7 @@ data:
         acme:
           email: nicholasp21@gmail.com
           storage: /data/acme.json
+          caServer: https://acme-staging-v02.api.letsencrypt.org/directory
           dnsChallenge:
             provider: cloudflare
             resolvers:
