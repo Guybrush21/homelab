@@ -41,7 +41,7 @@ data:
         allowExternalNameServices: true
 
     log:
-      level: INFO
+      level: DEBUG 
 
     accessLog: {}
 ---
