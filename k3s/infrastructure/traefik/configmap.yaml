@@ -10,6 +10,9 @@ data:
       dashboard: true
       insecure: false
 
+    ping:
+      entryPoint: "admin"
+
     entryPoints:
       web:
         address: ":80"
@@ -21,6 +24,8 @@ data:
               permanent: true
       websecure:
         address: ":443"
+      admin: 
+        address: ":8080"
 
     certificatesResolvers:
       cloudflare:
@@ -41,7 +46,7 @@ data:
         allowExternalNameServices: true
 
     log:
-      level: DEBUG 
+      level: INFO 
 
     accessLog: {}
 ---
