@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homer
+  namespace: homelab
+  labels:
+    app: homer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homer
+  template:
+    metadata:
+      labels:
+        app: homer
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: homer
+          image: b4bz/homer:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          # ponytail: hostPath, migrate to Longhorn PVC when node 2 joins
+          volumeMounts:
+            - name: assets
+              mountPath: /www/assets
+            - name: config
+              mountPath: /www/assets/config.yml
+              subPath: config.yml
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: assets
+          hostPath:
+            path: /var/lib/homelab/homer/container-data/assets
+            type: Directory
+        - name: config
+          configMap:
+            name: homer-config

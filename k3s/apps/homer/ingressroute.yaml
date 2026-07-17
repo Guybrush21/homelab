@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homer
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`homer.elaine.pw`)
+      kind: Rule
+      services:
+        - name: homer
+          port: 8080
+  tls:
+    certResolver: cloudflare
