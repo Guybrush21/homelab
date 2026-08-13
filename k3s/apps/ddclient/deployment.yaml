@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ddclient
+  namespace: homelab
+  labels:
+    app: ddclient
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ddclient
+  template:
+    metadata:
+      labels:
+        app: ddclient
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: ddclient
+          image: linuxserver/ddclient:latest
+          ports:
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: config
+          secret:
+            secretName: ddclient-config
