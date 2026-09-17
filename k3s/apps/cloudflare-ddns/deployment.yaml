@@ -21,6 +21,9 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         runAsNonRoot: true
+        # Secret volumes are root-owned by default; fsGroup makes the mounted
+        # token group-readable by the non-root user the container runs as.
+        fsGroup: 1000
       containers:
         - name: cloudflare-ddns
           image: favonia/cloudflare-ddns:1
@@ -63,7 +66,7 @@ spec:
         - name: token
           secret:
             secretName: cloudflare-ddns-token
-            defaultMode: 0400
+            defaultMode: 0440
             items:
               - key: token
                 path: token
