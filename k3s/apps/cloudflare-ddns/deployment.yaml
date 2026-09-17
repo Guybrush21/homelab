@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflare-ddns
+  namespace: homelab
+  labels:
+    app: cloudflare-ddns
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cloudflare-ddns
+  template:
+    metadata:
+      labels:
+        app: cloudflare-ddns
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+      containers:
+        - name: cloudflare-ddns
+          image: favonia/cloudflare-ddns:1
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            # Read the token from a mounted file, not an env value, so it never
+            # shows up in `kubectl get pod -o yaml` or in the container's environ.
+            - name: CLOUDFLARE_API_TOKEN_FILE
+              value: /secret/token
+            - name: DOMAINS
+              value: elaine.pw,dynamic.elaine.pw,mc.elaine.pw
+            # No public IPv6 on this line; asking for AAAA records would just
+            # produce recurring errors.
+            - name: IP6_PROVIDER
+              value: none
+            - name: PROXIED
+              value: "false"
+            - name: TTL
+              value: "1"
+            - name: UPDATE_CRON
+              value: "@every 5m"
+            - name: TZ
+              value: Europe/Rome
+          volumeMounts:
+            - name: token
+              mountPath: /secret
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: token
+          secret:
+            secretName: cloudflare-ddns-token
+            defaultMode: 0400
+            items:
+              - key: token
+                path: token

@@ -3,4 +3,4 @@ kind: Kustomization
 resources:
   - homelab-namespace.yaml
   - homer
-  - ddclient
+  - cloudflare-ddns
