@@ -4,3 +4,4 @@ resources:
   - homelab-namespace.yaml
   - homer
   - cloudflare-ddns
+  - adguard
