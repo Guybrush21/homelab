@@ -67,4 +67,6 @@ spec:
           configMap:
             name: traefik-config
         - name: data
-          emptyDir: {}
+          hostPath:
+            path: /var/lib/homelab-data/traefik/acme
+            type: DirectoryOrCreate
