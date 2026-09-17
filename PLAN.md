@@ -48,7 +48,10 @@ Existing `cloudflare-token` and `dashboard-users` are read out of the cluster an
 
 Each phase leaves the system working.
 
-### 0 — Repo hygiene
+**Done:** 0 (repo/data split), 1 (SOPS, Flux, DNS), 2 (AdGuard, split-horizon).
+**Next:** 3 (Jellyfin + Deluge).
+
+### 0 — Repo hygiene  ✅
 
 - `git reset --hard origin/master`; delete dead ArgoCD manifests, `k3s/doc/`, `nixos-migration.md`.
 - Move repo to `~/code/homelab`.
@@ -56,14 +59,16 @@ Each phase leaves the system working.
 - Old compose dirs → `archive/` (restorable if this goes badly).
 - Consolidate to **one** GitRepository + Kustomizations `infrastructure` → `apps` (`dependsOn`), so a broken app can no longer block infra.
 
-### 1 — Unbreak Flux, restore DNS
+### 1 — Unbreak Flux, restore DNS  ✅
 
 - Generate age key, write `.sops.yaml`, create `sops-age` secret, enable decryption on both Kustomizations.
 - Re-encrypt `cloudflare-token`, `dashboard-users` into git.
 - Commit ddclient's `secret.enc.yaml` → apps sync goes green → ddclient deploys → A record updates.
 - **Homer reachable again.**
 
-### 2 — AdGuard + split-horizon DNS
+### 2 — AdGuard + split-horizon DNS  ✅
+
+Remaining manual step: point the Fritz!Box LAN DNS server at 192.168.178.51.
 
 - Widen MetalLB pool to `.51-.59`.
 - AdGuard on `.51`, reusing `adguardhome/container-data/{conf,work}` (14 MB).
