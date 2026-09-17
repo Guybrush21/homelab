@@ -40,7 +40,7 @@ spec:
       volumes:
         - name: assets
           hostPath:
-            path: /var/lib/homelab/homer/container-data/assets
+            path: /var/lib/homelab-data/homer/assets
             type: Directory
         - name: config
           configMap:
