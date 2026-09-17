@@ -1,0 +1,7 @@
+# SOPS config. The recipient below is a PUBLIC age key - safe in a public repo.
+# Private key lives only at /var/lib/homelab-data/secrets/age.agekey and in the
+# cluster as secret `sops-age` in namespace flux-system.
+creation_rules:
+  - path_regex: k3s/.*\.enc\.yaml$
+    encrypted_regex: '^(data|stringData)$'
+    age: age1trpvzc07c9jlw9cg7rgu3uw2z2vn2wqa0tnm56ttlxvwadekfutq6dwey9

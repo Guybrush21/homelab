@@ -7,5 +7,6 @@ resources:
   - configmap.yaml
   - deployment.yaml
   - service.yaml
-  - secret-dashboard-auth.yaml
+  - secret-dashboard-auth.enc.yaml
+  - secret-cloudflare-token.enc.yaml
   - ingressroute-dashboard.yaml

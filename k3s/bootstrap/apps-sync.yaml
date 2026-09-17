@@ -1,17 +1,4 @@
 ---
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
-metadata:
-  name: homelab-apps
-  namespace: flux-system
-spec:
-  interval: 1m0s
-  ref:
-    branch: master
-  url: ssh://git@github.com/Guybrush21/homelab.git
-  secretRef:
-    name: flux-system
----
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -21,6 +8,14 @@ spec:
   interval: 10m0s
   path: ./k3s/apps
   prune: true
+  # Apps must never come up before Traefik/MetalLB exist, and a broken app
+  # must not be able to take infrastructure down with it.
+  dependsOn:
+    - name: homelab-infrastructure
   sourceRef:
     kind: GitRepository
-    name: homelab-apps
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
