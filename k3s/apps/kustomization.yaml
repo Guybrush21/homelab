@@ -5,3 +5,4 @@ resources:
   - homer
   - cloudflare-ddns
   - adguard
+  - umami

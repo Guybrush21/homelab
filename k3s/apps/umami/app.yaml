@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: umami
+  namespace: homelab
+  labels:
+    app: umami
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: umami
+  template:
+    metadata:
+      labels:
+        app: umami
+    spec:
+      containers:
+        - name: umami
+          image: ghcr.io/umami-software/umami:postgresql-latest
+          env:
+            - name: DATABASE_TYPE
+              value: postgresql
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: umami
+                  key: DATABASE_URL
+            # Carried over from the compose .env - changing it would invalidate
+            # every existing session and login.
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: umami
+                  key: APP_SECRET
+          ports:
+            - name: http
+              containerPort: 3000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /api/heartbeat
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /api/heartbeat
+              port: 3000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: umami
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: umami
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: umami
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`umami.elaine.pw`)
+      kind: Rule
+      services:
+        - name: umami
+          port: 3000
+  tls:
+    certResolver: cloudflare

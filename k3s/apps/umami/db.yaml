@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: umami-db
+  namespace: homelab
+  labels:
+    app: umami-db
+spec:
+  replicas: 1
+  strategy:
+    # Never run two postgres processes against the same data directory.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: umami-db
+  template:
+    metadata:
+      labels:
+        app: umami-db
+    spec:
+      securityContext:
+        # postgres:15-alpine runs as uid 70. The data directory carried over
+        # from podman was owned by 100069 (rootless userns mapping) and has
+        # been chowned to 70:70.
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+      containers:
+        - name: postgres
+          # Major version must match PG_VERSION in the existing data dir (15).
+          image: postgres:15-alpine
+          envFrom:
+            - secretRef:
+                name: umami
+          ports:
+            - name: postgres
+              containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "umami", "-d", "umami"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "umami", "-d", "umami"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/umami/umami-db-data
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: umami-db
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: umami-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
