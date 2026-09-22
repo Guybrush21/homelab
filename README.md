@@ -1,105 +1,148 @@
 # elaine Home Lab
 
-This is my personal docker compose repository for self-hosted service running in my homelab server. 
+Personal homelab running on **k3s**, managed with **Flux** GitOps. This repo is
+the source of truth: both the Kubernetes manifests and the NixOS system config
+live here.
 
-## The guide I followed
-
-<https://blog.gurucomputing.com.au/doing-more-with-docker/designing-our-workspace/>
-
-That is a really masterpiece. Just saying.
+Previously this was a pile of docker-compose files. Those are still in
+`archive/` in case I need to go back.
 
 ## Server
-As per possible all services are containered and managed with *docker compose*.
 
-Server is an AMD Ryzen 3 3200G with Arch Linux installed, with 8GB of ram (5 ram + 3 swap/zram). Server hostname is **elaine**
+AMD Ryzen 3 3200G, 16 GB RAM, NixOS 26.05. Hostname **elaine**.
 
-Drives are configured as follow:
+| Disk                                  | Use                                                 |
+| ------------------------------------- | --------------------------------------------------- |
+| 238 GB SSD                            | `/` and `/var/lib/homelab-data` (all service state) |
+| 2x2 TB HDD, RAID1 mdadm (`md/murray`) | `/mnt/murray` — media, backups                      |
+| 931 GB HDD                            | unused, not mounted                                 |
 
-1. 250GB SSD brtfs formatted used for   
-   1. /root
-   2. /home/vol-docker
-2. 2x2Tib HDD in Raid 1 using mdadm used for (called md/murray)   
-   1. /home
+## How it works
 
-## Repository GitOps
-<https://github.com/Guybrush21/homelab>
+```
+GitHub -> Flux -> k3s -> MetalLB -> Traefik -> pods
+```
 
-### Repo Structure
+One `GitRepository` (`flux-system`) feeds two Kustomizations:
 
-* git
-  * deluge
-    * container-data/
-    * docker-compose.yaml
-    * .env (*optional)*
-  * nginx-proxy-manager
-    * container-data/
-    * …
-  * …
+- `homelab-infrastructure` → `k3s/infrastructure` (MetalLB, Traefik)
+- `homelab-apps` → `k3s/apps`, which `dependsOn` infrastructure
 
-All docker compose file are organized in single folder. There is a special folder called **backup** which contain the systemd service and timer used for backuping all this structure. This way the backup is done both for the .yaml files and the container-data files which is where the volumes are mounted.
+Flux do some magic in order to update the cluster according to the desired state that is this repository.
 
-Volumes are (generally) all mounted in corresponding folder under ./container-data/whatever which is then gitignored. While this comes in handy for the backup, some images explicitally require named volumes. Probably a better approach is to use named volumes for everything and add a backup of the /
+## Repo structure
 
-## Backup
+```
+k3s/
+  bootstrap/        flux itself + the two sync manifests
+  infrastructure/   metallb, traefik
+  apps/             one folder per service
+nixos/              system config - /etc/nixos symlinks here
+archive/            the old docker-compose setup
+```
 
-Backup is done with [restic](https://restic.net/) invoked by a systemd unit. Right now I’m only backuping from the SSD to the RAID1 disk. This is enough for me even if both disk are located in the same pc (meh…). Restic have many options for REST\Cloud repository which, one day, I will try.
+Service state is **not** in this repo. It lives in `/var/lib/homelab-data/<service>/`
+and gets mounted into pods with `hostPath`. Single node for now, so no reason to get
+clever. One day...
 
-TODO:
+## NixOS
 
-- [ ] backup of named volume not created in container-data
+`/etc/nixos` is a symlink to `nixos/` in this repo, so `nixos-rebuild switch`
+works normally and the system config is versioned like everything else.
+
+```
+nixos/configuration.nix   base system, firewall, NFS, RAID
+nixos/k3s.nix             k3s server
+nixos/backup.nix          restic
+```
 
 ## Secrets
 
-By now the .gitignore is configured to ignore all **.env* files. This allows to safely use the built-in docker compose environment configurations while not deploying it to my public GitHub repository. 
+**SOPS + age.** Secrets are committed encrypted, which is why this repo can stay
+public, hopefully. Files are named `*.enc.yaml` and Flux decrypts them on apply, still some magic.
 
-
-## elaine.pw and the magic world of internet domains and dns
-
-I’ve bought the elaine.pw domain in [namecheap](https://www.namecheap.com/) in honor of governor Elaine from Monkey Island.
-
-With some black magic about DNS I’ve managed to use it in [Cloudflare](https://www.cloudflare.com). Cloudflare is resolving to my homelab server thanks to the ddclient container. It’s configuration is pretty simple.
-
-## Reverse Proxy
-_todo: rewrite this for trafik_
-Reverse proxy is done with the great [nginx-proxy-manger](https://nginxproxymanager.com/) which is just a nice ui for nginx with [Let’s Encrypt](https://letsencrypt.org/) utilities built-in.
-
-Basically the only ports forwared from my router to the homelab are the 80 and 443. These are exposed by the nginx-proxy-manager container that then will internally forward incoming connections to the proper container using subdomain like homer.elaine.pw or appsmith.elaine.pw etc. Inside the nginx-proxy-manager you can create a SSL certificate that then will be used for all the *.elaine.pw.
-
-In order to the reverse proxy to work all the containers who should be be exposed need to be on the same network. This is achieved easily in two steps:
-
-1. create an external network, named *reverseproxy* here, that we can refer to
-
-   `docker network create reverseproxy`
-2. refer to *reverseproxy* in all the containers created with compose
-
-```yaml
-volumes: - ./container-data/mysql:/var/lib/mysql
-
-networks:
-- nginx-proxy-manager-nw
-
-networks:
-  reverseproxy:
-  external: true 
-  nginx-proxy-manager-nw:
+```bash
+sops k3s/apps/foo/secret.enc.yaml    # opens plaintext in $EDITOR, re-encrypts on save
 ```
 
-That’s it.
+The private key is at `/var/lib/homelab-data/secrets/age.agekey` and in my
+password manager. Lose both and every secret in this repo is gone forever.
 
-## Networking
+## Networking and DNS
 
-Docker Compose built in provide network for all service defined in same compose file. Some defined services are cross-used internally by one or more applications: postgresql or nginx-proxy-manager. This is achieved using docker’s external networks. 
+`elaine.pw`, bought on namecheap in honor of governor Elaine from Monkey Island,
+DNS on Cloudflare. `cloudflare-ddns` keeps the A record pointed at my dynamic
+home IP.
 
-`docker network create network-name`
+MetalLB hands out `192.168.178.51-59`:
 
-and then in compose yaml 
+| IP    | Service          |
+| ----- | ---------------- |
+| `.51` | AdGuard (DNS)    |
+| `.55` | Traefik (80/443) |
 
-```yaml
-networks:
-- nginx-proxy-manager-nw
+Traefik terminates TLS with Let's Encrypt via Cloudflare DNS-01, so certificates
+work for LAN-only services without exposing anything.
 
-networks:
-  reverseproxy:
-  external: true 
-  nginx-proxy-manager-nw:
+**Split-horizon:** AdGuard rewrites `*.elaine.pw` → `192.168.178.55`, so traffic
+from inside the house goes straight to Traefik instead of out to the ISP and
+back. The Fritz!Box forwards to AdGuard (Internet → Account Information → DNS
+Server, both fields `192.168.178.51`).
+
+> Two gotchas that each cost me some time. **DNS Rebind Protection**
+> silently drops upstream answers pointing at private IPs — `elaine.pw` has to
+> be added to the hostname exceptions or nothing resolves. And if the DNSv6
+> field has public resolvers in it, the router uses those and bypasses AdGuard
+> entirely.
+
+Only 80 and 443 are forwarded from the router.
+
+## Backup
+
+`restic`, nightly, via a systemd timer defined in `nixos/backup.nix`. Keeps
+7 daily / 4 weekly / 6 monthly.
+
+```bash
+restic -r /mnt/murray/backup/restic --password-file /var/lib/homelab-data/secrets/restic-password snapshots
 ```
+
+Backed up: `/var/lib/homelab-data` and this repo. **Not** backed up: everything
+in `/mnt/murray/media`. The photos and media files in particular sit on RAID1 and nothing else.
+This is enough for now. It would be graeat to have a second location.
+
+The restic password lives on the SSD, and the backup that would restore it is
+encrypted with it. So it's in the password manager too.
+
+TODO:
+
+- [ ] off-site repository
+- [ ] back up the media/foto
+
+## Services
+
+|                 |                                         |
+| --------------- | --------------------------------------- |
+| Homer           | `homer.elaine.pw` — dashboard           |
+| AdGuard Home    | `adguard.elaine.pw` — DNS + ad blocking |
+| Umami           | `umami.elaine.pw` — analytics           |
+| Traefik         | `traefik.elaine.pw` — dashboard         |
+| cloudflare-ddns | no UI                                   |
+
+Coming: Jellyfin, Deluge, Immich, Paperless, Netdata, Minecraft.
+
+## Adding a service
+
+```bash
+mkdir k3s/apps/foo
+# deployment.yaml, service.yaml, ingressroute.yaml, kustomization.yaml
+# secrets go in secret.enc.yaml via sops
+```
+
+Add it to `k3s/apps/kustomization.yaml`, check it builds, push:
+
+```bash
+kubectl kustomize k3s/apps
+```
+
+If state needs to persist, put it in `/var/lib/homelab-data/foo/` and mount it
+with `hostPath`. It'll get backed up automatically.
