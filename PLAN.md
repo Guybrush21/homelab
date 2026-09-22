@@ -48,7 +48,7 @@ Existing `cloudflare-token` and `dashboard-users` are read out of the cluster an
 
 Each phase leaves the system working.
 
-**Done:** 0 (repo/data split), 1 (SOPS, Flux, DNS), 2 (AdGuard, split-horizon).
+**Done:** 0 (repo/data split), 1 (SOPS, Flux, DNS), 2 (AdGuard, split-horizon), umami (pulled forward from phase 5).
 **Next:** 3 (Jellyfin + Deluge).
 
 ### 0 — Repo hygiene  ✅
@@ -88,7 +88,7 @@ Remaining manual step: point the Fritz!Box LAN DNS server at 192.168.178.51.
 ### 5 — Remaining apps
 
 - Paperless-ngx: reuse `data,media,export,consume,pgdata` (97 MB), stays on SSD.
-- Umami + postgres: reuse `umami-db-data` (65 MB). Public.
+- Umami + postgres: reuse `umami-db-data` (65 MB). Public. ✅ done
 - Netdata: reuse `netdataconfig`. Drop the docker-socket-proxy — read containerd instead.
 - Minecraft: reuse `data` (348 MB). Public port.
 
