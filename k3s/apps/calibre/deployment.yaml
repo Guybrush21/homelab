@@ -26,6 +26,8 @@ spec:
               mountPath: /config
             - name: library
               mountPath: /library
+            - name: ingest
+              mountPath: /cwa-book-ingest
           resources:
             requests:
               cpu: 250m
@@ -55,9 +57,9 @@ spec:
             type: DirectoryOrCreate
         - name: library
           hostPath:
-            path: /mnt/murray/media/book/calibre
+            path: /mnt/murray/media/book/calibre/library
             type: Directory
         - name: ingest
           hostPath:
-            path: /mnt/murray/media/book/ingest-calibre
+            path: /mnt/murray/media/book/calibre/calibre-ingest
             type: DirectoryOrCreate
