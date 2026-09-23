@@ -47,7 +47,7 @@ spec:
             - name: TZ
               value: Europe/Rome
             - name: NETWORK_SHARE_MODE
-              value: false
+              value: "false"
       volumes:
         - name: config
           hostPath:
