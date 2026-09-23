@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: shelfmark
-          image: ghcr.io/calibrain/shelfmakr:latest
+          image: ghcr.io/calibrain/shelfmark:latest
           ports:
             - name: http
               containerPort: 8084
