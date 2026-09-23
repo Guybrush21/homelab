@@ -1,0 +1,51 @@
+# Job queue. Ephemeral by design: the official compose gives it no volume,
+# lost jobs regenerate on restart.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-redis
+  namespace: homelab
+  labels:
+    app: immich-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: immich-redis
+  template:
+    metadata:
+      labels:
+        app: immich-redis
+    spec:
+      containers:
+        - name: valkey
+          image: docker.io/valkey/valkey:9
+          ports:
+            - name: redis
+              containerPort: 6379
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli ping | grep -q PONG"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-redis
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379

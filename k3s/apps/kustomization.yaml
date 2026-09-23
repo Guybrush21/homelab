@@ -9,4 +9,5 @@ resources:
   - jellyfin
   - deluge
   - calibre
+  - immich
   - shelfmark

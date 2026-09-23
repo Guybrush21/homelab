@@ -1,0 +1,69 @@
+# Smart search and face recognition. Optional: without it Immich still works,
+# minus those two features. CPU-only (the 3200G has no GPU Immich can use for
+# inference).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-machine-learning
+  namespace: homelab
+  labels:
+    app: immich-machine-learning
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-machine-learning
+  template:
+    metadata:
+      labels:
+        app: immich-machine-learning
+    spec:
+      containers:
+        - name: machine-learning
+          image: ghcr.io/immich-app/immich-machine-learning:release
+          env:
+            - name: TZ
+              value: Europe/Rome
+          ports:
+            - name: http
+              containerPort: 3003
+          volumeMounts:
+            # CLIP models are downloaded on first use - keep them on the SSD so
+            # they are not re-downloaded on every restart.
+            - name: model-cache
+              mountPath: /cache
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "3"
+              memory: 4Gi
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 3003
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 10
+      volumes:
+        - name: model-cache
+          hostPath:
+            path: /var/lib/homelab-data/immich/model-cache
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-machine-learning
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-machine-learning
+  ports:
+    - name: http
+      port: 3003
+      targetPort: 3003

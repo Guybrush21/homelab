@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-server
+  namespace: homelab
+  labels:
+    app: immich-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-server
+  template:
+    metadata:
+      labels:
+        app: immich-server
+    spec:
+      containers:
+        - name: immich-server
+          image: ghcr.io/immich-app/immich-server:release
+          env:
+            - name: DB_HOSTNAME
+              value: immich-db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich
+                  key: DB_PASSWORD
+            - name: DB_DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich
+                  key: DB_DATABASE_NAME
+            - name: REDIS_HOSTNAME
+              value: immich-redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: IMMICH_MACHINE_LEARNING_URL
+              value: http://immich-machine-learning:3003
+            - name: TZ
+              value: Europe/Rome
+          ports:
+            - name: http
+              containerPort: 2283
+          volumeMounts:
+            # Managed library: mobile app uploads, thumbnails, cache.
+            - name: data
+              mountPath: /data
+            # EXTERNAL library, read-only. readOnly is not cosmetic: without it
+            # Immich can delete the original files. Register it afterwards in
+            # the admin UI as an External Library with path /mnt/media/foto.
+            - name: foto
+              mountPath: /mnt/media/foto
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "3"
+              memory: 4Gi
+          readinessProbe:
+            httpGet:
+              path: /api/server/ping
+              port: 2283
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 12
+      volumes:
+        - name: data
+          hostPath:
+            path: /mnt/murray/immich
+            type: Directory
+        - name: foto
+          hostPath:
+            path: /mnt/murray/media/foto
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-server
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-server
+  ports:
+    - name: http
+      port: 2283
+      targetPort: 2283
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: immich
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`immich.elaine.pw`)
+      kind: Rule
+      services:
+        - name: immich-server
+          port: 2283
+  tls:
+    certResolver: cloudflare

@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-db
+  namespace: homelab
+  labels:
+    app: immich-db
+spec:
+  replicas: 1
+  strategy:
+    # Never two postgres processes against the same data directory.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-db
+  template:
+    metadata:
+      labels:
+        app: immich-db
+    spec:
+      containers:
+        - name: postgres
+          # Server requires VectorChord >= 0.3 < 2.0, pgvector >= 0.7 < 0.9.
+          image: ghcr.io/immich-app/postgres:17-vectorchord0.4.3-pgvector0.8.0
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: immich
+                  key: DB_USERNAME
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich
+                  key: DB_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: immich
+                  key: DB_DATABASE_NAME
+            - name: POSTGRES_INITDB_ARGS
+              value: "--data-checksums"
+          ports:
+            - name: postgres
+              containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: shm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              # Immich docs put 2GB as the minimum for Postgres when limits are
+              # set - headroom above that, rather than sitting exactly on the
+              # threshold and getting OOM-killed under load.
+              memory: 4Gi
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "immich", "-d", "immich"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "immich", "-d", "immich"]
+            initialDelaySeconds: 90
+            periodSeconds: 30
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/immich/postgres
+            type: Directory
+        # The official compose sets shm_size: 128mb. Kubernetes defaults
+        # /dev/shm to 64Mi, too small for postgres under load.
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-db
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
