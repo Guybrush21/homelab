@@ -1,3 +1,5 @@
+# Jellyfin - media server
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -103,3 +105,36 @@ spec:
           hostPath:
             path: /dev/dri
             type: Directory
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: jellyfin
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: jellyfin
+  ports:
+    - name: http
+      port: 8096
+      targetPort: 8096
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: jellyfin
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`jellyfin.elaine.pw`)
+      kind: Rule
+      services:
+        - name: jellyfin
+          port: 8096
+  tls:
+    certResolver: cloudflare

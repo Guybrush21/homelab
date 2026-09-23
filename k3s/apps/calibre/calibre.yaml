@@ -1,3 +1,5 @@
+# Calibre-Web Automated - ebook library
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -63,3 +65,36 @@ spec:
           hostPath:
             path: /mnt/murray/media/book/calibre/calibre-ingest
             type: DirectoryOrCreate
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: calibre
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: calibre
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: calibre
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`books.elaine.pw`)
+      kind: Rule
+      services:
+        - name: calibre
+          port: 8083
+  tls:
+    certResolver: cloudflare

@@ -1,3 +1,5 @@
+# AdGuard Home - DNS and ad blocking
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -59,3 +61,66 @@ spec:
           hostPath:
             path: /var/lib/homelab-data/adguardhome/work
             type: Directory
+---
+# Service
+# DNS service: gets its own MetalLB address so the LAN can point at it
+# directly. This is what the Fritz!Box hands out as the DNS server.
+apiVersion: v1
+kind: Service
+metadata:
+  name: adguard-dns
+  namespace: homelab
+  labels:
+    app: adguard
+  annotations:
+    metallb.io/loadBalancerIPs: 192.168.178.51
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app: adguard
+  ports:
+    - name: dns-tcp
+      protocol: TCP
+      port: 53
+      targetPort: 53
+    - name: dns-udp
+      protocol: UDP
+      port: 53
+      targetPort: 53
+---
+# Web UI, reached through Traefik at adguard.elaine.pw
+apiVersion: v1
+kind: Service
+metadata:
+  name: adguard
+  namespace: homelab
+  labels:
+    app: adguard
+spec:
+  type: ClusterIP
+  selector:
+    app: adguard
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: adguard
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`adguard.elaine.pw`)
+      kind: Rule
+      services:
+        - name: adguard
+          port: 80
+  tls:
+    certResolver: cloudflare

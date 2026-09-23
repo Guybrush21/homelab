@@ -55,3 +55,37 @@ spec:
           hostPath:
             path: /mnt/murray/media/book/shelfmark/calibre-ingest
             type: DirectoryOrCreate
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: shelfmark
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: shelfmark
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: shelfmark
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`shelfmark.elaine.pw`)
+      kind: Rule
+      services:
+        - name: shelfmark
+          port: 8084
+  tls:
+    certResolver: cloudflare

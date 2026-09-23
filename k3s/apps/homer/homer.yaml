@@ -1,3 +1,5 @@
+# Homer - dashboard
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,3 +47,39 @@ spec:
         - name: config
           configMap:
             name: homer-config
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: homer
+  namespace: homelab
+  labels:
+    app: homer
+spec:
+  type: ClusterIP
+  selector:
+    app: homer
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homer
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`homer.elaine.pw`)
+      kind: Rule
+      services:
+        - name: homer
+          port: 8080
+  tls:
+    certResolver: cloudflare

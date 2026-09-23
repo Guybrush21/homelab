@@ -137,9 +137,20 @@ Coming: Immich, Paperless, Netdata, Minecraft.
 
 ```bash
 mkdir k3s/apps/foo
-# deployment.yaml, service.yaml, ingressroute.yaml, kustomization.yaml
-# secrets go in secret.enc.yaml via sops
+# foo.yaml            Deployment + Service + IngressRoute
+# secret.enc.yaml     secrets, via sops
+# kustomization.yaml
 ```
+
+**One file per component, not one per kind.** Everything belonging to the same
+workload — its Deployment, Service and IngressRoute — lives in one file,
+separated by `---` with a comment before each. This is what the Kubernetes docs
+recommend ("put resources related to the same microservice or application tier
+into the same file"), and it means removing a component is deleting one file
+instead of hunting its pieces across three.
+
+Apps with several components get one file each: `immich/` has `server.yaml`,
+`database.yaml`, `redis.yaml`, `machine-learning.yaml`.
 
 Add it to `k3s/apps/kustomization.yaml`, check it builds, push:
 

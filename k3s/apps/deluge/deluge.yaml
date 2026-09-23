@@ -1,3 +1,5 @@
+# Deluge - torrent client
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -67,3 +69,37 @@ spec:
           hostPath:
             path: /mnt/murray/media
             type: Directory
+---
+# Service
+# hostNetwork pod: this Service resolves to the node's IP:8112, not a pod IP.
+apiVersion: v1
+kind: Service
+metadata:
+  name: deluge
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: deluge
+  ports:
+    - name: web
+      port: 8112
+      targetPort: 8112
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: deluge
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`deluge.elaine.pw`)
+      kind: Rule
+      services:
+        - name: deluge
+          port: 8112
+  tls:
+    certResolver: cloudflare
