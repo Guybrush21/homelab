@@ -53,5 +53,5 @@ spec:
             type: DirectoryOrCreate
         - name: library
           hostPath:
-            path: /mnt/murray/media/book/
+            path: /mnt/murray/media/book/calibre
             type: Directory
