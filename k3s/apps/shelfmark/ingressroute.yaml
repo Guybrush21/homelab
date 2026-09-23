@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: shelfmark
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`shelfmark.elaine.pw`)
+      kind: Rule
+      services:
+        - name: shelfmark
+          port: 8084
+  tls:
+    certResolver: cloudflare

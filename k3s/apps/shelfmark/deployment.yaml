@@ -1,33 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: calibre
+  name: shelfmark
   namespace: homelab
   labels:
-    app: calibre
+    app: shelfmark
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: calibre
+      app: shelfmark
   template:
     metadata:
       labels:
-        app: calibre
+        app: shelfmark
     spec:
       containers:
-        - name: calibre
-          image: crocodilestick/calibre-web-automated:latest
+        - name: shelfmark
+          image: ghcr.io/calibrain/shelfmakr:latest
           ports:
             - name: http
-              containerPort: 8083
+              containerPort: 8084
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: library
-              mountPath: /library
             - name: ingest
-              mountPath: /cwa-book-ingest
+              mountPath: /books
           resources:
             requests:
               cpu: 250m
@@ -38,7 +36,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /
-              port: 8083
+              port: 8084
             initialDelaySeconds: 30
             periodSeconds: 20
           env:
@@ -48,18 +46,12 @@ spec:
               value: "1000"
             - name: TZ
               value: Europe/Rome
-            - name: NETWORK_SHARE_MODE
-              value: "true"
       volumes:
         - name: config
           hostPath:
-            path: /var/lib/homelab-data/calibre/
+            path: /var/lib/homelab-data/shelfmark/
             type: DirectoryOrCreate
-        - name: library
-          hostPath:
-            path: /mnt/murray/media/book/calibre/library
-            type: Directory
         - name: ingest
           hostPath:
-            path: /mnt/murray/media/book/calibre/calibre-ingest
+            path: /mnt/murray/media/book/shelfmark/calibre-ingest
             type: DirectoryOrCreate
