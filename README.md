@@ -15,7 +15,6 @@ AMD Ryzen 3 3200G, 16 GB RAM, NixOS 26.05. Hostname **elaine**.
 | ------------------------------------- | --------------------------------------------------- |
 | 238 GB SSD                            | `/` and `/var/lib/homelab-data` (all service state) |
 | 2x2 TB HDD, RAID1 mdadm (`md/murray`) | `/mnt/murray` — media, backups                      |
-| 931 GB HDD                            | unused, not mounted                                 |
 
 ## How it works
 
@@ -44,6 +43,8 @@ archive/            the old docker-compose setup
 Service state is **not** in this repo. It lives in `/var/lib/homelab-data/<service>/`
 and gets mounted into pods with `hostPath`. Single node for now, so no reason to get
 clever. One day...
+
+Media lives on the RAID at `/mnt/murray/media/{film,tvseries,music,books,foto}`.
 
 ## NixOS
 
@@ -127,8 +128,10 @@ TODO:
 | Umami           | `umami.elaine.pw` — analytics           |
 | Traefik         | `traefik.elaine.pw` — dashboard         |
 | cloudflare-ddns | no UI                                   |
+| Jellyfin        | `jellyfin.elaine.pw` — media            |
+| Deluge          | `deluge.elaine.pw` — torrents           |
 
-Coming: Jellyfin, Deluge, Immich, Paperless, Netdata, Minecraft.
+Coming: Immich, Paperless, Netdata, Minecraft.
 
 ## Adding a service
 

@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: deluge
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`deluge.elaine.pw`)
+      kind: Rule
+      services:
+        - name: deluge
+          port: 8112
+  tls:
+    certResolver: cloudflare

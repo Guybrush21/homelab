@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: homelab
+  labels:
+    app: jellyfin
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+    spec:
+      # linuxserver images start as root and drop to PUID/PGID themselves via
+      # their own s6-overlay init - fighting that with runAsUser breaks the
+      # init scripts. supplementalGroups gives the dropped-to user access to
+      # the GPU device nodes for hardware transcoding.
+      securityContext:
+        supplementalGroups: [26, 303]  # video, render
+      containers:
+        - name: jellyfin
+          image: lscr.io/linuxserver/jellyfin:latest
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: Europe/Rome
+            - name: JELLYFIN_PublishedServerUrl
+              value: jellyfin.elaine.pw
+          ports:
+            - name: http
+              containerPort: 8096
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: cache
+              mountPath: /cache
+            - name: movies
+              mountPath: /data/movies
+              readOnly: true
+            - name: tvseries
+              mountPath: /data/tvseries
+              readOnly: true
+            - name: music
+              mountPath: /data/music
+              readOnly: true
+            - name: books
+              mountPath: /data/books
+              readOnly: true
+            - name: dri
+              mountPath: /dev/dri
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "4"
+              memory: 4Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8096
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 8
+      volumes:
+        - name: config
+          hostPath:
+            path: /var/lib/homelab-data/jellyfin/config
+            type: Directory
+        - name: cache
+          hostPath:
+            path: /var/lib/homelab-data/jellyfin/cache
+            type: Directory
+        # Media lives on the RAID. /home/jigen/media (used by the old compose
+        # setup) is a broken symlink to a path that no longer exists - the
+        # real content is at /mnt/murray/media directly.
+        - name: movies
+          hostPath:
+            path: /mnt/murray/media/film
+            type: Directory
+        - name: tvseries
+          hostPath:
+            path: /mnt/murray/media/tvseries
+            type: Directory
+        - name: music
+          hostPath:
+            path: /mnt/murray/media/music
+            type: Directory
+        - name: books
+          hostPath:
+            path: /mnt/murray/media/book
+            type: Directory
+        - name: dri
+          hostPath:
+            path: /dev/dri
+            type: Directory

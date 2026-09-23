@@ -61,6 +61,13 @@
     };
   };
 
+  # iGPU (Vega, integrated in the 3200G) for Jellyfin hardware transcoding.
+  # /dev/dri/renderD128 -> gid 303 (render), /dev/dri/card1 -> gid 26 (video).
+  hardware.graphics = {
+    enable = true;
+    extraPackages = with pkgs; [ libva-vdpau-driver libvdpau-va-gl ];
+  };
+
   time.timeZone = "Europe/Rome";
   i18n.defaultLocale = "en_US.UTF-8";
 

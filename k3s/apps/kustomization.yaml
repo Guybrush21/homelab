@@ -6,3 +6,5 @@ resources:
   - cloudflare-ddns
   - adguard
   - umami
+  - jellyfin
+  - deluge
