@@ -53,7 +53,7 @@ spec:
             type: DirectoryOrCreate
         - name: ingest
           hostPath:
-            path: /mnt/murray/media/book/shelfmark/calibre-ingest
+            path: /mnt/murray/media/book/calibre/calibre-ingest
             type: DirectoryOrCreate
 
 ---
