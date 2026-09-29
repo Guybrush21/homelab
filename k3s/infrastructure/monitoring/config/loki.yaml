@@ -1,0 +1,43 @@
+# Loki in monolithic mode: every component (distributor, ingester, querier,
+# compactor) in one process, chunks and index on the local filesystem.
+# The scalable modes only matter with several nodes and object storage.
+
+auth_enabled: false # single tenant; everything lands in tenant "fake"
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  log_level: warn
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki # WAL, index, compactor dirs all go under here
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+
+schema_config:
+  configs:
+    - from: 2026-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  retention_period: 360h # 15 days, same as Prometheus
+
+compactor:
+  # The compactor is what actually deletes chunks past retention_period.
+  retention_enabled: true
+  delete_request_store: filesystem
+
+analytics:
+  reporting_enabled: false

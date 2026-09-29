@@ -1,0 +1,41 @@
+# smartctl-exporter - SMART health of the physical disks (SSD + both RAID
+# members), so a dying disk raises an alert instead of a line in the journal.
+# DaemonSet
+# Privileged: smartctl talks to the raw block devices, there is no narrower
+# capability that allows it.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: smartctl-exporter
+  namespace: monitoring
+  labels:
+    app: smartctl-exporter
+spec:
+  selector:
+    matchLabels:
+      app: smartctl-exporter
+  template:
+    metadata:
+      labels:
+        app: smartctl-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: smartctl-exporter
+          image: quay.io/prometheuscommunity/smartctl-exporter:v0.14.0
+          args:
+            - --smartctl.interval=5m
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          ports:
+            - name: metrics
+              containerPort: 9633
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi

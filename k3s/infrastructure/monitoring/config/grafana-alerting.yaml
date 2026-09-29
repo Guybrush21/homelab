@@ -1,0 +1,252 @@
+# Grafana-managed alert rules, provisioned from this file. They show up in
+# the "Alerts" dashboard (Grafana's home page) and under Alerting → Alert
+# rules. Provisioned rules are read-only in the UI - edit them here.
+#
+# No contact point yet: nothing is sent anywhere. To get emails, add SMTP
+# settings to grafana.yaml and a contactPoints/policies section here.
+#
+# Grafana expands environment variables in provisioning files, so any `$`
+# is a variable. Templates below use {{ index .Labels "x" }} instead of the
+# usual {{ $labels.x }} for that reason.
+#
+# Every rule has the same shape:
+#   A = the PromQL query
+#   B = a threshold on A; the rule fires while B is true for `for:`
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: host
+    folder: Homelab
+    interval: 1m
+    rules:
+      - uid: raid-degraded
+        title: RAID degradato
+        condition: B
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Array {{ index .Labels "device" }}: mancano dischi attivi. Controlla cat /proc/mdstat.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              # disks the array wants - disks actually active
+              expr: node_md_disks_required - ignoring(state) node_md_disks{state="active"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      - uid: smart-failing
+        title: Disco SMART non sano
+        condition: B
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Il test SMART di {{ index .Labels "device" }} non passa: il disco sta morendo.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              expr: smartctl_device_smart_status # 1 = passed
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+
+      - uid: disk-almost-full
+        title: Disco quasi pieno
+        condition: B
+        for: 15m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ index .Labels "mountpoint" }} ha meno del 10% di spazio libero.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                100 * node_filesystem_avail_bytes{mountpoint=~"/|/boot|/mnt/murray"}
+                / node_filesystem_size_bytes{mountpoint=~"/|/boot|/mnt/murray"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [10] }
+
+      - uid: memory-low
+        title: RAM quasi esaurita
+        condition: B
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: Meno del 10% di RAM disponibile da 10 minuti.
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              expr: 100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [10] }
+
+  - orgId: 1
+    name: backup
+    folder: Homelab
+    interval: 5m
+    rules:
+      - uid: backup-failed
+        title: Backup restic fallito
+        condition: B
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: 'L''ultimo run di restic-backups-homelab è fallito. journalctl -u restic-backups-homelab'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              expr: node_systemd_unit_state{name="restic-backups-homelab.service", state="failed"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      - uid: backup-stale
+        title: Backup restic non eseguito
+        condition: B
+        for: 0s
+        # No data here means the timer metric is gone - that's a problem too.
+        noDataState: Alerting
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: Il timer del backup non parte da più di 30 ore.
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              # hours since the timer last fired (daily + up to 45m random delay)
+              expr: (time() - node_systemd_timer_last_trigger_seconds{name="restic-backups-homelab.timer"}) / 3600
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [30] }
+
+  - orgId: 1
+    name: kubernetes
+    folder: Homelab
+    interval: 1m
+    rules:
+      - uid: pod-crashloop
+        title: Pod in CrashLoopBackOff
+        condition: B
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ index .Labels "namespace" }}/{{ index .Labels "pod" }} ({{ index .Labels "container" }}) continua a crashare.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              expr: kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      - uid: target-down
+        title: Target Prometheus irraggiungibile
+        condition: B
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Prometheus non riesce a leggere {{ index .Labels "job" }} ({{ index .Labels "instance" }}). Le altre regole su quel target sono cieche.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              expr: up # 1 = last scrape succeeded
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [1] }

@@ -125,7 +125,14 @@
     "d /mnt/murray/jigen 0755 jigen users -"
     "d /var/lib/homelab-data 0755 jigen users -"
     "d /var/lib/homelab-data/secrets 0700 jigen users -"
-  ];
+
+    # Monitoring stack (k3s/infrastructure/monitoring). Each dir is owned by
+    # the uid its container runs as - hostPath mounts don't chown anything.
+    "d /var/lib/homelab-data/monitoring 0755 root root -"
+    "d /var/lib/homelab-data/monitoring/prometheus 0700 65534 65534 -"
+    "d /var/lib/homelab-data/monitoring/loki 0700 10001 10001 -"
+    "d /var/lib/homelab-data/monitoring/grafana 0700 472 472 -"
+    "d /var/lib/homelab-data/monitoring/alloy 0700 root root -"  ];
 
   # Create symlink for media in jigen's home
   system.activationScripts.mediaSymlink = lib.stringAfter [ "users" ] ''

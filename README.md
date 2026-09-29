@@ -24,7 +24,7 @@ GitHub -> Flux -> k3s -> MetalLB -> Traefik -> pods
 
 One `GitRepository` (`flux-system`) feeds two Kustomizations:
 
-- `homelab-infrastructure` → `k3s/infrastructure` (MetalLB, Traefik)
+- `homelab-infrastructure` → `k3s/infrastructure` (MetalLB, Traefik, monitoring)
 - `homelab-apps` → `k3s/apps`, which `dependsOn` infrastructure
 
 Flux do some magic in order to update the cluster according to the desired state that is this repository.
@@ -34,7 +34,7 @@ Flux do some magic in order to update the cluster according to the desired state
 ```
 k3s/
   bootstrap/        flux itself + the two sync manifests
-  infrastructure/   metallb, traefik
+  infrastructure/   metallb, traefik, monitoring
   apps/             one folder per service
 nixos/              system config - /etc/nixos symlinks here
 archive/            the old docker-compose setup
@@ -98,6 +98,41 @@ Server, both fields `192.168.178.51`).
 
 Only 80 and 443 are forwarded from the router.
 
+## Monitoring
+
+Grafana + Prometheus + Loki, in `k3s/infrastructure/monitoring`. Plain
+manifests, no Helm, no Operator: every scrape target and every alert is in a
+file you can read.
+
+```
+node-exporter, smartctl-exporter,  --scrape-->  Prometheus  --+
+kube-state-metrics, kubelet/cAdvisor                          |
+                                                              +-->  Grafana  (dashboards, Explore, alert rules)
+/var/log/pods, systemd journal  --Alloy-->  Loki  ------------+
+```
+
+- **Grafana** at `grafana.elaine.pw`, user `admin`. Dashboards (folder
+  _Homelab_), datasources and alert rules are provisioned from
+  `config/` and `dashboards/` - edit them in git, not in the UI.
+- **Logs**: the _Logs_ dashboard, or Explore → Loki, e.g.
+  `{namespace="homelab", pod=~"immich.*"} |= "error"` or
+  `{job="systemd-journal", unit="restic-backups-homelab.service"}`.
+- **Alerts** (`config/grafana-alerting.yaml`): RAID degraded, SMART failing,
+  disk or RAM almost full, backup failed or not run in 30h, pod in
+  CrashLoopBackOff, scrape target down. Nothing is sent anywhere yet: the
+  _Alerts_ dashboard (Grafana's home page) shows what is firing.
+- 15 days of retention for both metrics and logs. Their data dirs are
+  excluded from restic; Grafana's DB is not.
+
+The admin password is in the secret:
+
+```bash
+sops -d k3s/infrastructure/monitoring/secret-grafana.enc.yaml   # GF_SECURITY_ADMIN_PASSWORD
+```
+
+To have an app scraped, give its pod the annotation `prometheus.io/scrape: "true"`
+and name the container port `metrics`.
+
 ## Backup
 
 `restic`, nightly, via a systemd timer defined in `nixos/backup.nix`. Keeps
@@ -130,8 +165,9 @@ TODO:
 | cloudflare-ddns | no UI                                   |
 | Jellyfin        | `jellyfin.elaine.pw` — media            |
 | Deluge          | `deluge.elaine.pw` — torrents           |
+| Grafana         | `grafana.elaine.pw` — metrics, logs, alerts |
 
-Coming: Immich, Paperless, Netdata, Minecraft.
+Coming: Paperless, Minecraft.
 
 ## Adding a service
 
