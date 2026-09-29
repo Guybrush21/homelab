@@ -27,7 +27,7 @@ spec:
             - name: config
               mountPath: /config
             - name: library
-              mountPath: /library
+              mountPath: /calibre-library
             - name: ingest
               mountPath: /cwa-book-ingest
           resources:
