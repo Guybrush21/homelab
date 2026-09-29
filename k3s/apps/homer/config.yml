@@ -85,7 +85,7 @@ services:
         logo: "assets/tools/adguard.png"
         subtitle: "pubblcita no grazie"
         tag: "app ads dns"
-        url: "https://adguardhome.elaine.pw/"
+        url: "https://adguard.elaine.pw/"
         target: "_blank"
       - name: "Deluge"
         logo: "assets/tools/deluge.png"
