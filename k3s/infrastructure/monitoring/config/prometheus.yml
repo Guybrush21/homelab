@@ -19,8 +19,10 @@ scrape_configs:
         replacement: elaine
 
   # Any pod opting in with the annotation prometheus.io/scrape: "true" and
-  # exposing a container port named "metrics". That covers node-exporter,
-  # kube-state-metrics and smartctl-exporter - and any app added later.
+  # exposing a container port named "metrics" (or "http-metrics", the
+  # kubebuilder convention the Flux Operator uses). That covers node-exporter,
+  # kube-state-metrics, smartctl-exporter, flux-operator - and any app added
+  # later.
   - job_name: kubernetes-pods
     # kube-state-metrics reports on *other* pods, so its series carry their
     # own namespace/pod labels. honor_labels keeps those instead of
@@ -35,13 +37,18 @@ scrape_configs:
       # role: pod yields one target per container port; keep only the
       # metrics one so multi-port pods aren't scraped twice.
       - source_labels: [__meta_kubernetes_pod_container_port_name]
-        regex: metrics
+        regex: (http-)?metrics
         action: keep
       - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
         regex: (.+)
         target_label: __metrics_path__
-      # job = the pod's `app` label: node-exporter, kube-state-metrics, ...
+      # job = the pod's `app` label (node-exporter, kube-state-metrics, ...),
+      # falling back to the standard app.kubernetes.io/name for upstream
+      # manifests. Order matters: the second rule only fires if `app` is set.
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+        target_label: job
       - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: (.+)
         target_label: job
       - source_labels: [__meta_kubernetes_namespace]
         target_label: namespace

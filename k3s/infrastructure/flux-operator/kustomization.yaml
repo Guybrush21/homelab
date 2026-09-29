@@ -1,0 +1,47 @@
+# Flux Operator, installed only for its Web UI (flux.elaine.pw) and for the
+# flux_resource_info metric the Grafana alerts use.
+#
+# It does NOT manage Flux here: the operator only takes over the controllers
+# once a FluxInstance resource exists, and there is none. Flux itself is still
+# the one installed by `flux bootstrap` (k3s/bootstrap/flux-system).
+#
+# install.yaml is the upstream release manifest, vendored unchanged:
+#   https://github.com/controlplaneio-fluxcd/flux-operator/releases/download/v0.60.0/install.yaml
+# To upgrade, download the new one over it and diff.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - install.yaml
+  - ingressroute.yaml
+patches:
+  # install.yaml ships the flux-system Namespace, which bootstrap already owns
+  # (gotk-components.yaml). Two Kustomizations applying the same object fight
+  # over it, and pruning this one would delete the namespace with all of Flux
+  # in it. Drop it.
+  - target:
+      kind: Namespace
+      name: flux-system
+    patch: |
+      $patch: delete
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: flux-system
+  # Refresh the Flux report (and so flux_resource_info) every 30s instead of
+  # every 5m, as upstream recommends when alerting on the metrics.
+  - target:
+      kind: Deployment
+      name: flux-operator
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: flux-operator
+      spec:
+        template:
+          spec:
+            containers:
+              - name: manager
+                env:
+                  - name: REPORTING_INTERVAL
+                    value: 30s

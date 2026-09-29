@@ -4,3 +4,4 @@ resources:
   - metallb
   - traefik
   - monitoring
+  - flux-operator

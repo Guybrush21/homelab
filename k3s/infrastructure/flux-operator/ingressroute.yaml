@@ -1,0 +1,23 @@
+# IngressRoute
+# The Web UI has no login of its own without SSO: it's anonymous and
+# read-only (no Secrets or ConfigMaps). Put the Traefik dashboard's basic auth
+# in front of it anyway - it still shows every resource and error in the cluster.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flux-web
+  namespace: flux-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`flux.elaine.pw`)
+      kind: Rule
+      middlewares:
+        - name: dashboard-auth
+          namespace: traefik
+      services:
+        - name: flux-operator
+          port: 9080
+  tls:
+    certResolver: cloudflare

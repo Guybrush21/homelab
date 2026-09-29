@@ -24,17 +24,23 @@ GitHub -> Flux -> k3s -> MetalLB -> Traefik -> pods
 
 One `GitRepository` (`flux-system`) feeds two Kustomizations:
 
-- `homelab-infrastructure` → `k3s/infrastructure` (MetalLB, Traefik, monitoring)
+- `homelab-infrastructure` → `k3s/infrastructure` (MetalLB, Traefik, monitoring, Flux Operator)
 - `homelab-apps` → `k3s/apps`, which `dependsOn` infrastructure
 
 Flux do some magic in order to update the cluster according to the desired state that is this repository.
+
+To see what the magic is doing: `flux.elaine.pw` (Flux Operator Web UI, behind
+the Traefik dashboard login), `flux get all -A`, or Flux's own logs in Grafana
+with `{namespace="flux-system"}`. The operator is installed **only** for the UI
+and its metrics - there is no `FluxInstance`, so it doesn't manage Flux, which
+is still the one from `flux bootstrap`.
 
 ## Repo structure
 
 ```
 k3s/
   bootstrap/        flux itself + the two sync manifests
-  infrastructure/   metallb, traefik, monitoring
+  infrastructure/   metallb, traefik, monitoring, flux-operator
   apps/             one folder per service
 nixos/              system config - /etc/nixos symlinks here
 archive/            the old docker-compose setup
@@ -162,6 +168,7 @@ TODO:
 | AdGuard Home    | `adguard.elaine.pw` — DNS + ad blocking |
 | Umami           | `umami.elaine.pw` — analytics           |
 | Traefik         | `traefik.elaine.pw` — dashboard         |
+| Flux Web UI     | `flux.elaine.pw` — GitOps status        |
 | cloudflare-ddns | no UI                                   |
 | Jellyfin        | `jellyfin.elaine.pw` — media            |
 | Deluge          | `deluge.elaine.pw` — torrents           |

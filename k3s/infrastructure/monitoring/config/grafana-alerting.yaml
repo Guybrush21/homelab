@@ -224,6 +224,36 @@ groups:
               conditions:
                 - evaluator: { type: gt, params: [0] }
 
+      - uid: flux-not-ready
+        title: Flux reconciliation fallita
+        condition: B
+        # Long enough to ride out a normal apply (Progressing is ready=Unknown,
+        # not False) and a retry or two.
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ index .Labels "kind" }} {{ index .Labels "exported_namespace" }}/{{ index .Labels "name" }} non è Ready ({{ index .Labels "reason" }}). Dettagli su flux.elaine.pw o con flux get all -A.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              # From the Flux Operator: one series per Flux object, value 1.
+              expr: flux_resource_info{ready="False", suspended="False"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
       - uid: target-down
         title: Target Prometheus irraggiungibile
         condition: B
