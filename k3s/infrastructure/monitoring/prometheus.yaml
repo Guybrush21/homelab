@@ -1,0 +1,116 @@
+# Prometheus - metrics database. Scrapes every target in config/prometheus.yml
+# ServiceAccount + RBAC
+# Service discovery reads pods and nodes from the API; the kubelet/cAdvisor
+# jobs need nodes/metrics to be let in by the kubelet.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+  - apiGroups: [""]
+    resources: [nodes, nodes/metrics, pods, services, endpoints]
+    verbs: [get, list, watch]
+  - nonResourceURLs: [/metrics, /metrics/cadvisor]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # the TSDB is locked by one process at a time
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      securityContext:
+        # Matches the owner NixOS gives the hostPath dir (nixos/configuration.nix)
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+      containers:
+        - name: prometheus
+          image: quay.io/prometheus/prometheus:v3.15.0
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=15d
+            # Hard cap too, so a runaway metric can't fill the SSD.
+            - --storage.tsdb.retention.size=10GB
+          ports:
+            - name: http
+              containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /prometheus
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1536Mi
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/monitoring/prometheus
+            type: Directory
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: http

@@ -29,16 +29,18 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 64Mi
+              memory: 256Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: "2"
+              memory: 2Gi
           livenessProbe:
             httpGet:
               path: /
               port: 8084
-            initialDelaySeconds: 30
-            periodSeconds: 20
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
           env:
             - name: PUID
               value: "1000"

@@ -21,6 +21,11 @@
       # Regenerable caches - Jellyfin's in particular gets large.
       "/var/lib/homelab-data/*/cache"
       "/var/lib/homelab-data/adguardhome/work/data/filters"
+      # Metrics and logs: large, churn every minute, and only worth anything
+      # while the box is alive. Grafana's DB is still backed up.
+      "/var/lib/homelab-data/monitoring/prometheus"
+      "/var/lib/homelab-data/monitoring/loki"
+      "/var/lib/homelab-data/monitoring/alloy"
     ];
 
     timerConfig = {

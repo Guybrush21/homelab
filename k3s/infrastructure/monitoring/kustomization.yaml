@@ -1,0 +1,48 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - namespace.yaml
+  # metrics
+  - prometheus.yaml
+  - node-exporter.yaml
+  - kube-state-metrics.yaml
+  - smartctl-exporter.yaml
+  # logs
+  - loki.yaml
+  - alloy.yaml
+  # UI + alerting
+  - grafana.yaml
+  - secret-grafana.enc.yaml
+
+# Config files live in config/ and dashboards/ as plain files, so they can be
+# edited (and linted) as what they are instead of as YAML-escaped strings.
+# The generator appends a content hash to each ConfigMap name and rewrites the
+# references in the Deployments: change a config, the name changes, the pod
+# template changes, Kubernetes rolls the pod. No manual restart.
+configMapGenerator:
+  - name: prometheus-config
+    files:
+      - config/prometheus.yml
+  - name: loki-config
+    files:
+      - config/loki.yaml
+  - name: alloy-config
+    files:
+      - config/config.alloy
+  - name: grafana-provisioning
+    files:
+      - config/grafana-datasources.yaml
+      - config/grafana-dashboards.yaml
+      - config/grafana-alerting.yaml
+  # Split in two: a ConfigMap caps at 1 MiB and Node Exporter Full alone is
+  # almost half of that.
+  - name: grafana-dashboards-node
+    files:
+      - dashboards/node-exporter-full.json
+  - name: grafana-dashboards-k8s
+    files:
+      - dashboards/alerts.json
+      - dashboards/k8s-global.json
+      - dashboards/k8s-pods.json
+      - dashboards/logs.json

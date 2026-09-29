@@ -1,0 +1,97 @@
+{
+  "title": "Logs",
+  "uid": "homelab-logs",
+  "description": "Pod logs and the systemd journal from Loki. For ad-hoc LogQL, Explore is often quicker.",
+  "tags": ["logs", "loki"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "schemaVersion": 39,
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": { "type": 1, "label": "namespace", "stream": "{job=\"pods\"}", "refId": "LokiVariableQueryEditor-VariableQuery" },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "pod",
+        "label": "Pod",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": { "type": 1, "label": "pod", "stream": "{job=\"pods\", namespace=~\"$namespace\"}", "refId": "LokiVariableQueryEditor-VariableQuery" },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "search",
+        "label": "Contains (regex)",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": "", "value": "" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log lines per pod",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 7 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (namespace, pod) (count_over_time({job=\"pods\", namespace=~\"$namespace\", pod=~\"$pod\"} |~ \"(?i)$search\" [$__auto]))",
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "right" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 2,
+      "title": "Pod logs",
+      "type": "logs",
+      "gridPos": { "x": 0, "y": 7, "w": 24, "h": 18 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"pods\", namespace=~\"$namespace\", pod=~\"$pod\"} |~ \"(?i)$search\""
+        }
+      ],
+      "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending", "enableLogDetails": true, "dedupStrategy": "none" }
+    },
+    {
+      "id": 3,
+      "title": "Host: systemd journal (warning and worse)",
+      "type": "logs",
+      "gridPos": { "x": 0, "y": 25, "w": 24, "h": 12 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"systemd-journal\", level=~\"emerg|alert|crit|error|warning\"} |~ \"(?i)$search\""
+        }
+      ],
+      "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending", "enableLogDetails": true, "dedupStrategy": "none" }
+    }
+  ]
+}

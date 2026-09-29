@@ -1,0 +1,100 @@
+// Alloy config: ship pod logs and the systemd journal to Loki.
+// Alloy wires "components" together: each one has arguments and exports,
+// and forward_to points at the next component's receiver - a pipeline.
+
+// ---------------------------------------------------------------------------
+// Pod logs
+//
+// The kubelet writes every container's stdout/stderr to
+//   /var/log/pods/<namespace>_<pod>_<uid>/<container>/<restart>.log
+// so the path alone says where a line came from. No Kubernetes API access is
+// needed: glob the files, tail them, pull the labels out of the path.
+// ---------------------------------------------------------------------------
+
+local.file_match "pods" {
+  path_targets = [{
+    __path__ = "/var/log/pods/*/*/*.log",
+    job      = "pods",
+  }]
+}
+
+loki.source.file "pods" {
+  targets    = local.file_match.pods.targets
+  forward_to = [loki.process.pods.receiver]
+}
+
+loki.process "pods" {
+  // Files are in CRI format: "<timestamp> <stdout|stderr> <F|P> <message>".
+  // stage.cri parses that, uses the container's timestamp, and joins lines
+  // the runtime split (P = partial).
+  stage.cri {}
+  forward_to = [loki.relabel.pods.receiver]
+}
+
+loki.relabel "pods" {
+  // loki.source.file adds a `filename` label; turn it into real labels.
+  rule {
+    source_labels = ["filename"]
+    regex         = "/var/log/pods/([^_]+)_([^_]+)_[^/]+/([^/]+)/.*"
+    target_label  = "namespace"
+    replacement   = "$1"
+  }
+  rule {
+    source_labels = ["filename"]
+    regex         = "/var/log/pods/([^_]+)_([^_]+)_[^/]+/([^/]+)/.*"
+    target_label  = "pod"
+    replacement   = "$2"
+  }
+  rule {
+    source_labels = ["filename"]
+    regex         = "/var/log/pods/([^_]+)_([^_]+)_[^/]+/([^/]+)/.*"
+    target_label  = "container"
+    replacement   = "$3"
+  }
+  // The filename itself changes on every restart (0.log, 1.log...) and would
+  // split one container's logs into many streams. Drop it.
+  rule {
+    action = "labeldrop"
+    regex  = "filename"
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// systemd journal: k3s itself, restic, smartd, mdadm-alert, sshd...
+// Everything that runs on the host rather than in a pod.
+// ---------------------------------------------------------------------------
+
+loki.relabel "journal" {
+  forward_to = []
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  // mdadm-alert logs via systemd-cat -t, so it has an identifier, not a unit.
+  rule {
+    source_labels = ["__journal_syslog_identifier"]
+    target_label  = "identifier"
+  }
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+}
+
+loki.source.journal "journal" {
+  path          = "/var/log/journal"
+  max_age       = "12h" // on first start, don't backfill the whole journal
+  relabel_rules = loki.relabel.journal.rules
+  labels        = { job = "systemd-journal" }
+  forward_to    = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+  }
+  external_labels = { cluster = "elaine" }
+}

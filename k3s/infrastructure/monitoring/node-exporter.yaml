@@ -1,0 +1,66 @@
+# node-exporter - host metrics: CPU, RAM, disks, network, RAID (/proc/mdstat),
+# and a few systemd units (the restic backup in particular).
+# DaemonSet
+# One pod per node. hostNetwork + hostPID so it sees the host's network
+# interfaces and processes, not the pod's; the host root is mounted read-only
+# at /host/root and every collector reads from there.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+    spec:
+      hostNetwork: true
+      hostPID: true
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 65534
+        runAsNonRoot: true
+      containers:
+        - name: node-exporter
+          image: quay.io/prometheus/node-exporter:v1.12.1
+          args:
+            - --path.rootfs=/host/root
+            # Listens on the host network, but 9100 is not open in the NixOS
+            # firewall: only pods (via the trusted cni0) can reach it.
+            - --web.listen-address=:9100
+            # systemd collector over D-Bus, limited to the units we alert on.
+            - --collector.systemd
+            - --collector.systemd.unit-include=(restic-backups-.+|smartd|mdmonitor|k3s)\.(service|timer)
+          ports:
+            - name: metrics
+              containerPort: 9100
+          volumeMounts:
+            - name: root
+              mountPath: /host/root
+              readOnly: true
+              mountPropagation: HostToContainer
+            - name: dbus
+              mountPath: /var/run/dbus/system_bus_socket
+              readOnly: true
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: root
+          hostPath:
+            path: /
+        - name: dbus
+          hostPath:
+            path: /run/dbus/system_bus_socket
+            type: Socket

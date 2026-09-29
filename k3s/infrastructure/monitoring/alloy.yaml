@@ -1,0 +1,84 @@
+# Alloy - log collector. Tails pod log files and the systemd journal on the
+# node and pushes them to Loki. Config: config/config.alloy
+# DaemonSet
+# One per node, because logs are files on each node's disk.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: alloy
+  namespace: monitoring
+  labels:
+    app: alloy
+spec:
+  selector:
+    matchLabels:
+      app: alloy
+  template:
+    metadata:
+      labels:
+        app: alloy
+    spec:
+      # Labels come from the log file path, not the API: no token needed.
+      automountServiceAccountToken: false
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.20.1
+          args:
+            - run
+            - /etc/alloy/config.alloy
+            - --storage.path=/var/lib/alloy/data
+            - --server.http.listen-addr=0.0.0.0:12345
+            - --disable-reporting
+          securityContext:
+            # Pod logs and the journal are root-only on the host.
+            runAsUser: 0
+          ports:
+            - name: http # debug UI: kubectl -n monitoring port-forward ds/alloy 12345
+              containerPort: 12345
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy
+            # Positions file: how far into each log Alloy has read. Kept on the
+            # host so a restart resumes instead of re-sending everything.
+            - name: data
+              mountPath: /var/lib/alloy/data
+            - name: pod-logs
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: journal
+              mountPath: /var/log/journal
+              readOnly: true
+            # The journal reader needs the machine-id to find its directory.
+            - name: machine-id
+              mountPath: /etc/machine-id
+              readOnly: true
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+      volumes:
+        - name: config
+          configMap:
+            name: alloy-config
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/monitoring/alloy
+            type: Directory
+        - name: pod-logs
+          hostPath:
+            path: /var/log/pods
+            type: Directory
+        - name: journal
+          hostPath:
+            path: /var/log/journal
+            type: Directory
+        - name: machine-id
+          hostPath:
+            path: /etc/machine-id
+            type: File

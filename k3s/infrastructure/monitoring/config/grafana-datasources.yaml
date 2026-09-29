@@ -1,0 +1,16 @@
+# Fixed uids so dashboards and alert rules can reference them by name.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus.monitoring.svc.cluster.local:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 30s # = scrape_interval, so $__rate_interval is sane
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki.monitoring.svc.cluster.local:3100

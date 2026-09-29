@@ -1,0 +1,12 @@
+# Load every JSON in /etc/grafana/dashboards (the dashboards/ folder of the
+# repo) into the "Homelab" folder. Edits made in the UI can't be saved over
+# them: change the JSON in git instead, or "Save as" a copy to play with.
+apiVersion: 1
+providers:
+  - name: homelab
+    folder: Homelab
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards

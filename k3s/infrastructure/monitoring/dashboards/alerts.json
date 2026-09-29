@@ -1,0 +1,147 @@
+{
+  "title": "Alerts",
+  "uid": "homelab-alerts",
+  "description": "Grafana's home page: what is firing now, plus the few numbers worth a glance. Rules live in config/grafana-alerting.yaml.",
+  "tags": ["alerts"],
+  "timezone": "browser",
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Firing now",
+      "type": "alertlist",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 9 },
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "groupBy": [],
+        "maxItems": 20,
+        "sortOrder": 1,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "alertInstanceLabelFilter": "",
+        "showInstances": true,
+        "stateFilter": { "firing": true, "pending": true, "error": true, "noData": true, "normal": false }
+      }
+    },
+    {
+      "id": 2,
+      "title": "All rules",
+      "type": "alertlist",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 9 },
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "groupBy": [],
+        "maxItems": 20,
+        "sortOrder": 1,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "alertInstanceLabelFilter": "",
+        "showInstances": false,
+        "stateFilter": { "firing": true, "pending": true, "error": true, "noData": true, "normal": true }
+      }
+    },
+    {
+      "id": 3,
+      "title": "RAID",
+      "description": "Active disks / disks the array wants.",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 9, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "node_md_disks{state=\"active\"}",
+          "instant": true,
+          "legendFormat": "{{device}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 2 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value_and_name", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4,
+      "title": "Free disk space",
+      "type": "bargauge",
+      "gridPos": { "x": 6, "y": 9, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "100 * node_filesystem_avail_bytes{mountpoint=~\"/|/boot|/mnt/murray\"} / node_filesystem_size_bytes{mountpoint=~\"/|/boot|/mnt/murray\"}",
+          "instant": true,
+          "legendFormat": "{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 10 }, { "color": "green", "value": 25 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "orientation": "horizontal", "displayMode": "basic", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 5,
+      "title": "Available RAM",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 9, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes",
+          "legendFormat": "available"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 10 }, { "color": "green", "value": 25 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 6,
+      "title": "Last backup",
+      "description": "Time since the restic timer last fired. Alert at 30h.",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 9, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "time() - node_systemd_timer_last_trigger_seconds{name=\"restic-backups-homelab.timer\"}",
+          "instant": true,
+          "legendFormat": "ago"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 108000 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    }
+  ]
+}
