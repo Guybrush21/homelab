@@ -125,14 +125,22 @@
     "d /mnt/murray/jigen 0755 jigen users -"
     "d /var/lib/homelab-data 0755 jigen users -"
     "d /var/lib/homelab-data/secrets 0700 jigen users -"
+  ];
 
-    # Monitoring stack (k3s/infrastructure/monitoring). Each dir is owned by
-    # the uid its container runs as - hostPath mounts don't chown anything.
-    "d /var/lib/homelab-data/monitoring 0755 root root -"
-    "d /var/lib/homelab-data/monitoring/prometheus 0700 65534 65534 -"
-    "d /var/lib/homelab-data/monitoring/loki 0700 10001 10001 -"
-    "d /var/lib/homelab-data/monitoring/grafana 0700 472 472 -"
-    "d /var/lib/homelab-data/monitoring/alloy 0700 root root -"  ];
+  # Data dirs for the monitoring stack (k3s/infrastructure/monitoring), each
+  # owned by the uid its container runs as - hostPath mounts don't chown
+  # anything. Not tmpfiles: it refuses to create a dir owned by one user inside
+  # a dir owned by another non-root user ("unsafe path transition"), and
+  # /var/lib/homelab-data belongs to jigen. `install -d` is idempotent and
+  # re-applies owner and mode on every switch.
+  system.activationScripts.monitoringDirs = lib.stringAfter [ "users" ] ''
+    base=/var/lib/homelab-data/monitoring
+    install -d -m 0755 -o root  -g root  $base
+    install -d -m 0700 -o 65534 -g 65534 $base/prometheus
+    install -d -m 0700 -o 10001 -g 10001 $base/loki
+    install -d -m 0700 -o 472   -g 472   $base/grafana
+    install -d -m 0700 -o root  -g root  $base/alloy
+  '';
 
   # Create symlink for media in jigen's home
   system.activationScripts.mediaSymlink = lib.stringAfter [ "users" ] ''
