@@ -13,6 +13,7 @@ kind: Kustomization
 resources:
   - install.yaml
   - ingressroute.yaml
+  - networkpolicy.yaml
 patches:
   # install.yaml ships the flux-system Namespace, which bootstrap already owns
   # (gotk-components.yaml). Two Kustomizations applying the same object fight
