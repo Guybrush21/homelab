@@ -162,6 +162,29 @@
     RebootWatchdogSec = "2m";
   };
 
+  # Weekly `nixos-rebuild switch --upgrade` against the 26.05 channel: security
+  # fixes only, never a jump to the next release (that stays a manual change of
+  # channel). Builds from /etc/nixos, i.e. whatever is checked out in this repo.
+  # Reboots only when the kernel/initrd changed, and only in the window, which
+  # sits well clear of the nightly backup (00:00-00:45 plus run time).
+  system.autoUpgrade = {
+    enable = true;
+    dates = "Sun 04:00";
+    randomizedDelaySec = "30min";
+    persistent = true;
+    allowReboot = true;
+    rebootWindow = { lower = "04:00"; upper = "06:00"; };
+  };
+
+  # Without these, weekly upgrades pile up generations until /boot (512M) fills.
+  boot.loader.systemd-boot.configurationLimit = 10;
+  nix.gc = {
+    automatic = true;
+    dates = "Sun 06:30";
+    options = "--delete-older-than 30d";
+  };
+  nix.optimise.automatic = true;
+
 
   # NixOS version - don't change after install
   system.stateVersion = "25.11";

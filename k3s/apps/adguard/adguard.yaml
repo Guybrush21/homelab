@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: adguard
-          image: adguard/adguardhome:latest
+          image: adguard/adguardhome:v0.107.79
           ports:
             - name: dns-tcp
               containerPort: 53

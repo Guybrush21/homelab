@@ -60,8 +60,16 @@ works normally and the system config is versioned like everything else.
 ```
 nixos/configuration.nix   base system, firewall, NFS, RAID
 nixos/k3s.nix             k3s server
-nixos/backup.nix          restic
+nixos/backup.nix          restic + database dumps
 ```
+
+**Auto-upgrade**: every Sunday at 04:00 (`nixos-upgrade.service`) the box
+runs `nixos-rebuild switch --upgrade` against the `nixos-26.05-small`
+channel, and reboots between 04:00 and 06:00 only if the kernel changed. That
+brings in security fixes, not a new release: moving to 26.11 is still a manual
+`nix-channel --add`. A failed upgrade leaves the previous generation running
+and fires an alert. Old generations are garbage-collected after 30 days, at
+most 10 stay in the boot menu.
 
 ## Secrets
 
@@ -136,8 +144,8 @@ kube-state-metrics, kubelet/cAdvisor                          |
   `{namespace="homelab", pod=~"immich.*"} |= "error"` or
   `{job="systemd-journal", unit="restic-backups-homelab.service"}`.
 - **Alerts** (`config/grafana-alerting.yaml`): RAID degraded, SMART failing,
-  disk or RAM almost full, backup failed or not run in 30h, pod in
-  CrashLoopBackOff, scrape target down. Nothing is sent anywhere yet: the
+  disk or RAM almost full, backup failed or not run in 30h, database dump
+  failed, NixOS auto-upgrade failed, pod in CrashLoopBackOff, scrape target down. Nothing is sent anywhere yet: the
   _Alerts_ dashboard (Grafana's home page) shows what is firing.
 - 15 days of retention for both metrics and logs. Their data dirs are
   excluded from restic; Grafana's DB is not.
@@ -158,6 +166,23 @@ and name the container port `metrics`.
 
 ```bash
 restic -r /mnt/murray/backup/restic --password-file /var/lib/homelab-data/secrets/restic-password snapshots
+```
+
+Before every run `homelab-db-dump.service` writes consistent copies of the
+databases to `/var/lib/homelab-data/dumps/`: `pg_dumpall` for the Postgres
+pods (Immich, Umami), SQLite `.backup` for Papra, Grafana and Jellyfin. The raw
+data dirs are still in the snapshot too, but those were copied while the
+database was writing, so **restore from the dumps**. If a dump fails the
+backup still runs (with the previous dump of that database) and the _Dump dei
+database fallito_ alert fires.
+
+```bash
+sudo systemctl start homelab-db-dump && ls -la /var/lib/homelab-data/dumps   # by hand
+
+# Postgres restore: start the db pod on an empty data dir, then
+kubectl -n homelab exec -i deploy/immich-db -c postgres -- \
+  sh -c 'psql -U "$POSTGRES_USER" -d postgres' < immich.sql
+# SQLite: stop the app (scale to 0), copy the .sqlite over the db file, scale back up.
 ```
 
 Backed up: `/var/lib/homelab-data` and this repo. **Not** backed up: everything
@@ -190,6 +215,22 @@ TODO:
 | Minecraft       | `mc.elaine.pw` — game server            |
 | Deluge          | `deluge.elaine.pw` — torrents           |
 | Grafana         | `grafana.elaine.pw` — metrics, logs, alerts |
+
+## Image updates
+
+Every image is pinned to an exact version, no `:latest`: what runs is what's
+in git, and rolling back is a `git revert`. [Renovate](https://github.com/apps/renovate)
+(config in `renovate.json`) checks on the first day of the month and keeps a
+_Dependency Dashboard_ issue with everything pending. Merging a PR is the
+deploy: Flux picks it up from `master`. Nothing merges on its own.
+
+- Every minor and patch arrives in **one** PR, _monthly updates_. Majors get
+  a PR each, since those are the ones that need reading the release notes.
+- Immich server and machine-learning are always in the same PR, majors too.
+- Never proposed: Postgres majors (they need a dump/restore) and the Immich
+  Postgres image (its tag follows what the Immich release notes ask for).
+- Flux is updated by Renovate's flux manager. flux-operator and MetalLB are
+  vendored manifests: re-download them from their release by hand.
 
 ## Adding a service
 

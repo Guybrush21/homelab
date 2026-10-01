@@ -22,7 +22,7 @@ spec:
         runAsGroup: 1000
       containers:
         - name: homer
-          image: b4bz/homer:latest
+          image: b4bz/homer:v26.08.3
           ports:
             - name: http
               containerPort: 8080

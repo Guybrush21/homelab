@@ -38,7 +38,7 @@ spec:
             - --web.listen-address=:9100
             # systemd collector over D-Bus, limited to the units we alert on.
             - --collector.systemd
-            - --collector.systemd.unit-include=(restic-backups-.+|smartd|mdmonitor|k3s)\.(service|timer)
+            - --collector.systemd.unit-include=(restic-backups-.+|homelab-db-dump|nixos-upgrade|smartd|mdmonitor|k3s)\.(service|timer)
           ports:
             - name: metrics
               containerPort: 9100

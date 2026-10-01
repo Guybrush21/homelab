@@ -27,7 +27,7 @@ spec:
         supplementalGroups: [26, 303]  # video, render
       containers:
         - name: jellyfin
-          image: lscr.io/linuxserver/jellyfin:latest
+          image: lscr.io/linuxserver/jellyfin:12.1ubu2604-ls50
           env:
             - name: PUID
               value: "1000"

@@ -26,7 +26,7 @@ spec:
         runAsGroup: 100
       containers:
         - name: papra
-          image: ghcr.io/papra-hq/papra:latest
+          image: ghcr.io/papra-hq/papra:26.6.2-rootless
           env:
             - name: APP_BASE_URL
               value: https://papra.elaine.pw

@@ -1,0 +1,21 @@
+# Every push and PR (Renovate's included) must still build with kustomize,
+# otherwise Flux would refuse to apply it and the cluster would stay behind.
+name: validate
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  kustomize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: kustomize build
+        run: |
+          for dir in k3s/infrastructure k3s/apps k3s/bootstrap; do
+            echo "::group::$dir"
+            kubectl kustomize "$dir" > /dev/null
+            echo "::endgroup::"
+          done

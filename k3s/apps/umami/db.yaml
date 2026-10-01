@@ -19,7 +19,7 @@ spec:
         app: umami-db
     spec:
       securityContext:
-        # postgres:15-alpine runs as uid 70. The data directory carried over
+        # postgres:15.19-alpine runs as uid 70. The data directory carried over
         # from podman was owned by 100069 (rootless userns mapping) and has
         # been chowned to 70:70.
         runAsUser: 70
@@ -28,7 +28,7 @@ spec:
       containers:
         - name: postgres
           # Major version must match PG_VERSION in the existing data dir (15).
-          image: postgres:15-alpine
+          image: postgres:15.19-alpine
           envFrom:
             - secretRef:
                 name: umami

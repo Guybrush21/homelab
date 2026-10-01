@@ -163,6 +163,67 @@ groups:
               conditions:
                 - evaluator: { type: gt, params: [0] }
 
+      # The backup still runs when this fails, but with the previous night's
+      # dump of whichever database failed.
+      - uid: db-dump-failed
+        title: Dump dei database fallito
+        condition: B
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Almeno un dump in /var/lib/homelab-data/dumps non è stato aggiornato. journalctl -u homelab-db-dump'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              expr: node_systemd_unit_state{name="homelab-db-dump.service", state="failed"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+  - orgId: 1
+    name: system
+    folder: Homelab
+    interval: 5m
+    rules:
+      - uid: nixos-upgrade-failed
+        title: Aggiornamento NixOS fallito
+        condition: B
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: 'L''aggiornamento automatico settimanale è fallito, il sistema è rimasto alla generazione precedente. journalctl -u nixos-upgrade'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              instant: true
+              expr: node_systemd_unit_state{name="nixos-upgrade.service", state="failed"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
       - uid: backup-stale
         title: Backup restic non eseguito
         condition: B

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":timezone(Europe/Rome)"],
+  "schedule": ["on the first day of the month"],
+  "enabledManagers": ["kubernetes", "flux"],
+  "kubernetes": {
+    "managerFilePatterns": ["/^k3s/.+\\.ya?ml$/"]
+  },
+  "flux": {
+    "managerFilePatterns": ["/^k3s/bootstrap/.+\\.ya?ml$/"]
+  },
+  "packageRules": [
+    {
+      "description": "One PR a month with every minor and patch. Majors still come one by one.",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "monthly updates"
+    },
+    {
+      "description": "Vendored upstream manifests: the images and the CRDs/RBAC next to them must move together. Flux itself is handled by the flux manager; flux-operator and MetalLB are re-vendored by hand from their release.",
+      "matchManagers": ["kubernetes"],
+      "matchFileNames": [
+        "k3s/bootstrap/flux-system/**",
+        "k3s/infrastructure/flux-operator/install.yaml",
+        "k3s/infrastructure/metallb/metallb-native.yaml"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "linuxserver.io tags: <version>[ubuNNNN]-lsNNN. The ls build bumps on every rebuild of the same upstream version.",
+      "matchPackageNames": ["lscr.io/linuxserver/**"],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?(?<compatibility>ubu\\d+)?-ls(?<build>\\d+)$"
+    },
+    {
+      "description": "Postgres majors need a dump/restore (or pg_upgrade) of the data dir. Done by hand, never by a PR.",
+      "matchDepNames": ["postgres"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Its tag encodes the VectorChord/pgvector versions the server needs; follow the Immich release notes instead.",
+      "matchPackageNames": ["ghcr.io/immich-app/postgres"],
+      "enabled": false
+    },
+    {
+      "description": "Server and machine-learning must run the same version, majors included.",
+      "matchPackageNames": ["ghcr.io/immich-app/immich-server", "ghcr.io/immich-app/immich-machine-learning"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "immich"
+    }
+  ]
+}

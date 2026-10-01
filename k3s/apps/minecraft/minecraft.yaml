@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: minecraft
-          image: itzg/minecraft-server:latest
+          image: itzg/minecraft-server:2026.9.2-java25
           # Keeps the server console attachable: `kubectl attach -it deploy/minecraft`.
           # For one-off commands `kubectl exec deploy/minecraft -- rcon-cli <cmd>`.
           stdin: true
