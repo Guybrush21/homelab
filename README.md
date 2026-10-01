@@ -186,7 +186,7 @@ TODO:
 | Immich          | `immich.elaine.pw` — photos             |
 | Calibre         | `books.elaine.pw` — ebooks              |
 | Shelfmark       | `shelfmark.elaine.pw` — book search     |
-| Paperless-ngx   | `paperless.elaine.pw` — documents       |
+| Papra           | `papra.elaine.pw` — documents           |
 | Minecraft       | `mc.elaine.pw` — game server            |
 | Deluge          | `deluge.elaine.pw` — torrents           |
 | Grafana         | `grafana.elaine.pw` — metrics, logs, alerts |

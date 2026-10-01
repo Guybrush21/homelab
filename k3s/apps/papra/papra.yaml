@@ -1,0 +1,117 @@
+# Papra - minimal document archive. One container: SQLite DB and the files
+# themselves both live in app-data, no Postgres, no Redis.
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: papra
+  namespace: homelab
+  labels:
+    app: papra
+spec:
+  replicas: 1
+  strategy:
+    # SQLite: one writer only.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: papra
+  template:
+    metadata:
+      labels:
+        app: papra
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 100
+      containers:
+        - name: papra
+          image: ghcr.io/papra-hq/papra:latest
+          env:
+            - name: APP_BASE_URL
+              value: https://papra.elaine.pw
+            - name: AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: papra
+                  key: AUTH_SECRET
+            # Reachable from the internet: open only for the first sign-up
+            # (who becomes admin), then set back to "false".
+            - name: AUTH_IS_REGISTRATION_ENABLED
+              value: "true"
+            - name: DOCUMENTS_OCR_LANGUAGES
+              value: ita,eng
+            # Files dropped in ingestion/<org id>/ get imported, then deleted.
+            - name: INGESTION_FOLDER_IS_ENABLED
+              value: "true"
+            - name: TZ
+              value: Europe/Rome
+          ports:
+            - name: http
+              containerPort: 1221
+          volumeMounts:
+            - name: data
+              mountPath: /app/app-data
+            - name: ingestion
+              mountPath: /app/ingestion
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 1221
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /api/ping
+              port: 1221
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/papra/app-data
+            type: Directory
+        - name: ingestion
+          hostPath:
+            path: /var/lib/homelab-data/papra/ingestion
+            type: Directory
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: papra
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: papra
+  ports:
+    - name: http
+      port: 1221
+      targetPort: 1221
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: papra
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`papra.elaine.pw`)
+      kind: Rule
+      services:
+        - name: papra
+          port: 1221
+  tls:
+    certResolver: cloudflare

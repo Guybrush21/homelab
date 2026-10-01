@@ -3,6 +3,4 @@ kind: Kustomization
 namespace: homelab
 resources:
   - secret.enc.yaml
-  - database.yaml
-  - redis.yaml
-  - server.yaml
+  - papra.yaml
