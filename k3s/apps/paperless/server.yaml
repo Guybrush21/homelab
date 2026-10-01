@@ -19,10 +19,11 @@ spec:
       labels:
         app: paperless
     spec:
+      # Otherwise the `paperless` Service injects PAPERLESS_PORT=tcp://...:8000,
+      # which paperless reads as its own setting and refuses to start.
+      enableServiceLinks: false
       containers:
         - name: paperless
-          # Successor of paperless-ng; on first start it migrates the old
-          # schema in place.
           image: ghcr.io/paperless-ngx/paperless-ngx:latest
           env:
             - name: PAPERLESS_REDIS
@@ -85,7 +86,7 @@ spec:
               port: 8000
             initialDelaySeconds: 30
             periodSeconds: 15
-            # First start runs the ng -> ngx migrations.
+            # First start (and every upgrade) runs the DB migrations.
             failureThreshold: 40
           livenessProbe:
             httpGet:

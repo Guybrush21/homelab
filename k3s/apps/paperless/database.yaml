@@ -25,9 +25,7 @@ spec:
         runAsGroup: 100
       containers:
         - name: postgres
-          # db/ was restored from a pg_dump of the old Postgres 13 cluster
-          # (paperless-ng/pgdata, kept untouched). Major version must match
-          # PG_VERSION in db/.
+          # Major version must match PG_VERSION in db/.
           image: postgres:17
           env:
             - name: POSTGRES_DB
