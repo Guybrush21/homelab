@@ -86,6 +86,7 @@ MetalLB hands out `192.168.178.51-59`:
 | IP    | Service          |
 | ----- | ---------------- |
 | `.51` | AdGuard (DNS)    |
+| `.52` | Minecraft        |
 | `.55` | Traefik (80/443) |
 
 Traefik terminates TLS with Let's Encrypt via Cloudflare DNS-01, so certificates
@@ -102,7 +103,18 @@ Server, both fields `192.168.178.51`).
 > field has public resolvers in it, the router uses those and bypasses AdGuard
 > entirely.
 
-Only 80 and 443 are forwarded from the router.
+Forwarded from the router: 80 and 443 (Traefik), 25565/tcp (Minecraft, to
+`.52`).
+
+## VPN
+
+WireGuard on the Fritz!Box itself (Internet → Permit Access → VPN
+(WireGuard)), not on elaine: it keeps working when the cluster or the server
+is down, and won't tie the VPN to one node if this ever grows past one. Not in
+this repo - peers are added and their QR codes shown in the Fritz!Box UI.
+
+VPN clients use the Fritz!Box as DNS, which forwards to AdGuard, so
+`*.elaine.pw` works from outside exactly like at home.
 
 ## Monitoring
 
@@ -171,10 +183,13 @@ TODO:
 | Flux Web UI     | `flux.elaine.pw` — GitOps status        |
 | cloudflare-ddns | no UI                                   |
 | Jellyfin        | `jellyfin.elaine.pw` — media            |
+| Immich          | `immich.elaine.pw` — photos             |
+| Calibre         | `books.elaine.pw` — ebooks              |
+| Shelfmark       | `shelfmark.elaine.pw` — book search     |
+| Paperless-ngx   | `paperless.elaine.pw` — documents       |
+| Minecraft       | `mc.elaine.pw` — game server            |
 | Deluge          | `deluge.elaine.pw` — torrents           |
 | Grafana         | `grafana.elaine.pw` — metrics, logs, alerts |
-
-Coming: Paperless, Minecraft.
 
 ## Adding a service
 

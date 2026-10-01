@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-db
+  namespace: homelab
+  labels:
+    app: paperless-db
+spec:
+  replicas: 1
+  strategy:
+    # Never run two postgres processes against the same data directory.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: paperless-db
+  template:
+    metadata:
+      labels:
+        app: paperless-db
+    spec:
+      securityContext:
+        # The data dir is owned by jigen:users like the rest of paperless-ng/.
+        # The Debian postgres image copes with an arbitrary uid via nss_wrapper.
+        runAsUser: 1000
+        runAsGroup: 100
+      containers:
+        - name: postgres
+          # db/ was restored from a pg_dump of the old Postgres 13 cluster
+          # (paperless-ng/pgdata, kept untouched). Major version must match
+          # PG_VERSION in db/.
+          image: postgres:17
+          env:
+            - name: POSTGRES_DB
+              value: paperless
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: paperless
+                  key: PAPERLESS_DBUSER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paperless
+                  key: PAPERLESS_DBPASS
+          ports:
+            - name: postgres
+              containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "paperless", "-d", "paperless"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "paperless", "-d", "paperless"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/paperless-ng/db
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paperless-db
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: paperless-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

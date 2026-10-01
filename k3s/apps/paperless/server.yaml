@@ -1,0 +1,146 @@
+# Paperless-ngx - document archive with OCR
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless
+  namespace: homelab
+  labels:
+    app: paperless
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: paperless
+  template:
+    metadata:
+      labels:
+        app: paperless
+    spec:
+      containers:
+        - name: paperless
+          # Successor of paperless-ng; on first start it migrates the old
+          # schema in place.
+          image: ghcr.io/paperless-ngx/paperless-ngx:latest
+          env:
+            - name: PAPERLESS_REDIS
+              value: redis://paperless-redis:6379
+            - name: PAPERLESS_DBHOST
+              value: paperless-db
+            - name: PAPERLESS_DBNAME
+              value: paperless
+            - name: PAPERLESS_DBUSER
+              valueFrom:
+                secretKeyRef:
+                  name: paperless
+                  key: PAPERLESS_DBUSER
+            - name: PAPERLESS_DBPASS
+              valueFrom:
+                secretKeyRef:
+                  name: paperless
+                  key: PAPERLESS_DBPASS
+            # Carried over from the compose .env - changing it would invalidate
+            # every existing session.
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paperless
+                  key: PAPERLESS_SECRET_KEY
+            - name: PAPERLESS_URL
+              value: https://paperless.elaine.pw
+            - name: PAPERLESS_OCR_LANGUAGE
+              value: ita
+            - name: PAPERLESS_TIME_ZONE
+              value: Europe/Rome
+            # Files written into data/media/consume stay jigen:users.
+            - name: USERMAP_UID
+              value: "1000"
+            - name: USERMAP_GID
+              value: "100"
+          ports:
+            - name: http
+              containerPort: 8000
+          volumeMounts:
+            - name: data
+              mountPath: /usr/src/paperless/data
+            - name: media
+              mountPath: /usr/src/paperless/media
+            # Anything dropped in here gets OCR'd and imported.
+            - name: consume
+              mountPath: /usr/src/paperless/consume
+            - name: export
+              mountPath: /usr/src/paperless/export
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            # First start runs the ng -> ngx migrations.
+            failureThreshold: 40
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 600
+            periodSeconds: 30
+            failureThreshold: 5
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/paperless-ng/data
+            type: Directory
+        - name: media
+          hostPath:
+            path: /var/lib/homelab-data/paperless-ng/media
+            type: Directory
+        - name: consume
+          hostPath:
+            path: /var/lib/homelab-data/paperless-ng/consume
+            type: Directory
+        - name: export
+          hostPath:
+            path: /var/lib/homelab-data/paperless-ng/export
+            type: Directory
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: paperless
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: paperless
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: paperless
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`paperless.elaine.pw`)
+      kind: Rule
+      services:
+        - name: paperless
+          port: 8000
+  tls:
+    certResolver: cloudflare

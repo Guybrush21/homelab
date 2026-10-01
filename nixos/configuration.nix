@@ -25,8 +25,8 @@
   networking.useDHCP = false;
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 22 80 443 53 2049 111 4000 4001 4002 20048 ];
-    allowedUDPPorts = [ 53 51820 2049 111 4000 4001 4002 20048]; 
+    allowedTCPPorts = [ 22 80 443 53 25565 2049 111 4000 4001 4002 20048 ];
+    allowedUDPPorts = [ 53 2049 111 4000 4001 4002 20048]; 
     allowedTCPPortRanges = [{ from = 50101; to = 50300; }];
     allowedUDPPortRanges = [{ from = 50101; to = 50300; }];
     trustedInterfaces = ["flannel.1" "cni+"];

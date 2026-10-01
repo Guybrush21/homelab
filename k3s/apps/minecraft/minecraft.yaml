@@ -1,0 +1,109 @@
+# Minecraft - vanilla Java server
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft
+  namespace: homelab
+  labels:
+    app: minecraft
+spec:
+  replicas: 1
+  strategy:
+    # Two servers on the same world directory would corrupt it.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: minecraft
+  template:
+    metadata:
+      labels:
+        app: minecraft
+    spec:
+      containers:
+        - name: minecraft
+          image: itzg/minecraft-server:latest
+          # Keeps the server console attachable: `kubectl attach -it deploy/minecraft`.
+          # For one-off commands `kubectl exec deploy/minecraft -- rcon-cli <cmd>`.
+          stdin: true
+          tty: true
+          env:
+            - name: EULA
+              value: "TRUE"
+            - name: TYPE
+              value: VANILLA
+            # Same as the compose setup: follow the latest release. Worlds
+            # upgrade forward only - pin a version here to stop that.
+            - name: VERSION
+              value: LATEST
+            # Carried over from the compose setup, so people without a paid
+            # account can join. It also means anyone can join under any name:
+            # turn on ENABLE_WHITELIST + WHITELIST before it gets popular.
+            - name: ONLINE_MODE
+              value: "FALSE"
+            - name: MEMORY
+              value: 2G
+            # The existing world is owned by jigen:users.
+            - name: UID
+              value: "1000"
+            - name: GID
+              value: "100"
+            - name: TZ
+              value: Europe/Rome
+          ports:
+            - name: minecraft
+              containerPort: 25565
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 250m
+              memory: 2560Mi
+            limits:
+              cpu: "3"
+              # 2G heap + JVM overhead.
+              memory: 3Gi
+          readinessProbe:
+            exec:
+              command: ["mc-health"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            exec:
+              command: ["mc-health"]
+            # First start downloads the server jar and upgrades the world.
+            initialDelaySeconds: 300
+            periodSeconds: 30
+            failureThreshold: 5
+      volumes:
+        # Carried over from the compose setup: world, server.properties, ops.
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/minecraft/data
+            type: Directory
+---
+# Service
+# Not HTTP, so it can't go through Traefik: own MetalLB address, and the
+# Fritz!Box forwards 25565 here. mc.elaine.pw is kept up to date by
+# cloudflare-ddns.
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft
+  namespace: homelab
+  labels:
+    app: minecraft
+  annotations:
+    metallb.io/loadBalancerIPs: 192.168.178.52
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app: minecraft
+  ports:
+    - name: minecraft
+      protocol: TCP
+      port: 25565
+      targetPort: 25565
