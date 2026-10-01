@@ -35,10 +35,10 @@ spec:
                 secretKeyRef:
                   name: papra
                   key: AUTH_SECRET
-            # Reachable from the internet: open only for the first sign-up
-            # (who becomes admin), then set back to "false".
+            # Reachable from the internet, so closed once the admin account
+            # existed. Flip to "true" briefly to let someone else sign up.
             - name: AUTH_IS_REGISTRATION_ENABLED
-              value: "true"
+              value: "false"
             - name: DOCUMENTS_OCR_LANGUAGES
               value: ita,eng
             # Files dropped in ingestion/<org id>/ get imported, then deleted.
