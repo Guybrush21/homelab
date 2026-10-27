@@ -191,7 +191,7 @@ restic -r /mnt/murray/backup/restic --password-file /var/lib/homelab-data/secret
 
 Before every run `homelab-db-dump.service` writes consistent copies of the
 databases to `/var/lib/homelab-data/dumps/`: `pg_dumpall` for the Postgres
-pods (Immich, Umami), SQLite `.backup` for Papra, Grafana and Jellyfin. The raw
+pods (Immich, Umami), SQLite `.backup` for Papra, Forgejo, Grafana and Jellyfin. The raw
 data dirs are still in the snapshot too, but those were copied while the
 database was writing, so **restore from the dumps**. If a dump fails the
 backup still runs (with the previous dump of that database) and the _Dump dei
@@ -233,6 +233,7 @@ TODO:
 | Calibre         | `books.elaine.pw` — ebooks              |
 | Shelfmark       | `shelfmark.elaine.pw` — book search     |
 | Papra           | `papra.elaine.pw` — documents           |
+| Forgejo         | `forgejo.elaine.pw` — git (https only)  |
 | Minecraft       | `mc.elaine.pw` — game server            |
 | Deluge          | `deluge.elaine.pw` — torrents           |
 | Grafana         | `grafana.elaine.pw` — metrics, logs, alerts |

@@ -52,6 +52,7 @@ let
     postgres umami  umami-db
 
     sqlite papra    /var/lib/homelab-data/papra/app-data/db/db.sqlite
+    sqlite forgejo  /var/lib/homelab-data/forgejo/data/forgejo.db
     sqlite grafana  /var/lib/homelab-data/monitoring/grafana/grafana.db
     sqlite jellyfin /var/lib/homelab-data/jellyfin/config/data/data/jellyfin.db
 

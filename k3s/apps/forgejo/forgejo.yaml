@@ -1,0 +1,119 @@
+# Forgejo - git forge. One container: SQLite DB and the repositories both live
+# under /var/lib/gitea, no Postgres, no Redis. Web only: SSH is disabled, clone
+# over https.
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forgejo
+  namespace: homelab
+  labels:
+    app: forgejo
+spec:
+  replicas: 1
+  strategy:
+    # SQLite: one writer only.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: forgejo
+  template:
+    metadata:
+      labels:
+        app: forgejo
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 100
+      containers:
+        - name: forgejo
+          image: codeberg.org/forgejo/forgejo:17.0.1-rootless
+          env:
+            - name: FORGEJO__server__DOMAIN
+              value: forgejo.elaine.pw
+            - name: FORGEJO__server__ROOT_URL
+              value: https://forgejo.elaine.pw/
+            - name: FORGEJO__server__HTTP_PORT
+              value: "3000"
+            - name: FORGEJO__server__DISABLE_SSH
+              value: "true"
+            - name: FORGEJO__database__DB_TYPE
+              value: sqlite3
+            - name: FORGEJO__database__PATH
+              value: /var/lib/gitea/data/forgejo.db
+            - name: FORGEJO__security__INSTALL_LOCK
+              value: "true"
+            # Reachable from the internet. Create users from the admin panel
+            # or with `forgejo admin user create`.
+            - name: FORGEJO__service__DISABLE_REGISTRATION
+              value: "true"
+            - name: FORGEJO__log__MODE
+              value: console
+            - name: TZ
+              value: Europe/Rome
+          envFrom:
+            - secretRef:
+                name: forgejo
+          ports:
+            - name: http
+              containerPort: 3000
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/gitea
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /api/healthz
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /api/healthz
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/forgejo
+            type: Directory
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: forgejo
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: forgejo
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: forgejo
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`forgejo.elaine.pw`)
+      kind: Rule
+      services:
+        - name: forgejo
+          port: 3000
+  tls:
+    certResolver: cloudflare
