@@ -61,6 +61,7 @@ works normally and the system config is versioned like everything else.
 nixos/configuration.nix   base system, firewall, NFS, RAID
 nixos/k3s.nix             k3s server
 nixos/backup.nix          restic + database dumps
+nixos/wireguard.nix       WireGuard VPN
 ```
 
 **Auto-upgrade**: every Sunday at 04:00 (`nixos-upgrade.service`) the box
@@ -112,17 +113,31 @@ Server, both fields `192.168.178.51`).
 > entirely.
 
 Forwarded from the router: 80 and 443 (Traefik), 25565/tcp (Minecraft, to
-`.52`).
+`.52`), 51820/udp (WireGuard, to elaine `.50`).
 
 ## VPN
 
-WireGuard on the Fritz!Box itself (Internet → Permit Access → VPN
-(WireGuard)), not on elaine: it keeps working when the cluster or the server
-is down, and won't tie the VPN to one node if this ever grows past one. Not in
-this repo - peers are added and their QR codes shown in the Fritz!Box UI.
+WireGuard on elaine, in `nixos/wireguard.nix`: `wg0`, `10.13.13.0/24`,
+51820/udp forwarded from the router. Clients are NATed out as elaine, so the
+rest of the LAN needs no route back. The server key is generated on first start
+in `/var/lib/homelab-data/secrets/wireguard.key` (backed up with the rest).
 
-VPN clients use the Fritz!Box as DNS, which forwards to AdGuard, so
-`*.elaine.pw` works from outside exactly like at home.
+New client:
+
+```bash
+sudo wg-add-client telefono 10.13.13.2   # QR + .conf for the device, and a line for wireguard.nix
+```
+
+Scan the QR (or save the config as a `.conf`), paste the printed line into
+`clients` in `wireguard.nix`, `nixos-rebuild switch`. The client private key
+is shown once and never stored here: lose it and you just make a new client.
+Clients use AdGuard (`.51`) as DNS, so `*.elaine.pw` works from outside exactly
+like at home.
+
+**Break-glass:** the Fritz!Box still has its own WireGuard (Internet → Permit
+Access → VPN (WireGuard)) with one peer on phone and laptop. Use it only when
+elaine is down - the Sunday auto-upgrade reboot, a bad rebuild - to get into
+the LAN and the router UI anyway.
 
 ## Monitoring
 

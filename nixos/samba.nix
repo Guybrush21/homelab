@@ -12,7 +12,7 @@
         "hosts deny" = "0.0.0.0/0";
         "guest account" = "nobody";
       };
-      "private" = {
+      "media" = {
         "path" = "/mnt/murray/media";
         "browseable" = "yes";
         "read only" = "no";

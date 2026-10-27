@@ -6,6 +6,7 @@
       ./backup.nix
       ./samba.nix
       ./nfs.nix
+      ./wireguard.nix
     ];
 
   boot.loader.systemd-boot.enable = true;
