@@ -37,8 +37,11 @@ spec:
             # shows up in `kubectl get pod -o yaml` or in the container's environ.
             - name: CLOUDFLARE_API_TOKEN_FILE
               value: /secret/token
+            # vpn.elaine.pw must stay DNS-only (grey cloud): the Cloudflare
+            # proxy only carries HTTP, so WireGuard's UDP would die there.
+            # PROXIED below only applies to records this creates.
             - name: DOMAINS
-              value: elaine.pw,dynamic.elaine.pw,mc.elaine.pw
+              value: elaine.pw,dynamic.elaine.pw,mc.elaine.pw,vpn.elaine.pw
             # No public IPv6 on this line; asking for AAAA records would just
             # produce recurring errors.
             - name: IP6_PROVIDER

@@ -122,6 +122,12 @@ WireGuard on elaine, in `nixos/wireguard.nix`: `wg0`, `10.13.13.0/24`,
 rest of the LAN needs no route back. The server key is generated on first start
 in `/var/lib/homelab-data/secrets/wireguard.key` (backed up with the rest).
 
+The endpoint is `vpn.elaine.pw`, kept by cloudflare-ddns and **DNS-only**:
+`elaine.pw` itself is proxied by Cloudflare, which only carries HTTP and
+silently eats WireGuard's UDP. AdGuard rewrites `vpn.elaine.pw` →
+`192.168.178.50` (above the `*.elaine.pw` → `.55` one), so the tunnel also
+comes up on the home wifi.
+
 New client:
 
 ```bash

@@ -31,7 +31,8 @@ let
       pub=$(wg pubkey <<< "$priv")
       server_pub=$(wg pubkey < ${keyFile})
 
-      # Full tunnel: everything goes through home, ads blocked by AdGuard
+      # vpn.elaine.pw, not elaine.pw: that one is proxied by Cloudflare,
+      # which drops UDP. Full tunnel: everything goes through home, ads blocked by AdGuard
       # everywhere. For LAN-only use AllowedIPs = 192.168.178.0/24, ${subnet}.0/24
       conf="[Interface]
       PrivateKey = $priv
@@ -40,7 +41,7 @@ let
 
       [Peer]
       PublicKey = $server_pub
-      Endpoint = elaine.pw:${toString port}
+      Endpoint = vpn.elaine.pw:${toString port}
       AllowedIPs = 0.0.0.0/0"
 
       qrencode -t ansiutf8 <<< "$conf"
