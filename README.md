@@ -251,7 +251,8 @@ deploy: Flux picks it up from `master`. Nothing merges on its own.
 - Immich server and machine-learning are always in the same PR, majors too.
 - Never proposed: Postgres majors (they need a dump/restore) and the Immich
   Postgres image (its tag follows what the Immich release notes ask for).
-- Flux is updated by Renovate's flux manager. flux-operator and MetalLB are
+- Flux is updated by Renovate's flux manager, always in a PR of its own: it
+  regenerates `gotk-components.yaml`, CRDs included. flux-operator and MetalLB are
   vendored manifests: re-download them from their release by hand.
 
 ## Adding a service

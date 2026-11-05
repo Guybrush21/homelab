@@ -11,7 +11,8 @@
   },
   "packageRules": [
     {
-      "description": "One PR a month with every minor and patch. Majors still come one by one.",
+      "description": "One PR a month with every minor and patch of the images. Majors still come one by one, and so does Flux: it rewrites its own CRDs and has to be reverted on its own.",
+      "matchManagers": ["kubernetes"],
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "groupName": "monthly updates"
     },
