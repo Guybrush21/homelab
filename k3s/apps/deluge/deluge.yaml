@@ -27,7 +27,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: deluge
-          image: lscr.io/linuxserver/deluge:2.2.0-ls383
+          image: lscr.io/linuxserver/deluge:2.2.0-ls386
           env:
             - name: PUID
               value: "1000"
