@@ -24,7 +24,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: smartctl-exporter
-          image: quay.io/prometheuscommunity/smartctl-exporter:v0.14.0
+          image: quay.io/prometheuscommunity/smartctl-exporter:v0.15.0
           args:
             - --smartctl.interval=5m
           securityContext:
