@@ -1,0 +1,122 @@
+# TaskChampion sync server - what Taskwarrior 3 syncs against (`task sync`).
+# One container, one SQLite file in /var/lib/taskchampion-sync-server. Tasks
+# are encrypted on the client with `sync.encryption_secret`: the server only
+# ever sees ciphertext. Only the client ids in the secret are accepted.
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskchampion
+  namespace: homelab
+  labels:
+    app: taskchampion
+spec:
+  replicas: 1
+  strategy:
+    # SQLite: one writer only.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: taskchampion
+  template:
+    metadata:
+      labels:
+        app: taskchampion
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 100
+      containers:
+        - name: taskchampion
+          image: ghcr.io/gothenburgbitfactory/taskchampion-sync-server:0.7.1
+          # Skip the image's entrypoint: it chowns DATA_DIR and su-execs to its
+          # own user, and run as non-root it falls through without starting
+          # the server at all.
+          command: ["/bin/taskchampion-sync-server"]
+          env:
+            - name: DATA_DIR
+              value: /var/lib/taskchampion-sync-server
+            - name: LISTEN
+              value: 0.0.0.0:8080
+            # Reachable from the internet: unknown client ids get a 403
+            # instead of a fresh empty replica. Comma-separated, one per
+            # Taskwarrior "account" (all devices of the same list share one).
+            - name: CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: taskchampion
+                  key: CLIENT_ID
+            - name: RUST_LOG
+              value: info
+            - name: TZ
+              value: Europe/Rome
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/taskchampion-sync-server
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/taskchampion
+            type: Directory
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskchampion
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: taskchampion
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: taskchampion
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`tasks.elaine.pw`)
+      kind: Rule
+      services:
+        - name: taskchampion
+          port: 8080
+  tls:
+    certResolver: cloudflare

@@ -1,6 +1,6 @@
 # Forgejo - git forge. One container: SQLite DB and the repositories both live
 # under /var/lib/gitea, no Postgres, no Redis. Web only: SSH is disabled, clone
-# over https.
+# over https. Actions jobs run on the runner in runner.yaml.
 # Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -46,6 +46,10 @@ spec:
             # Reachable from the internet. Create users from the admin panel
             # or with `forgejo admin user create`.
             - name: FORGEJO__service__DISABLE_REGISTRATION
+              value: "true"
+            # On by default since Forgejo 1.21, spelled out so it is clear
+            # where the runner's jobs come from.
+            - name: FORGEJO__actions__ENABLED
               value: "true"
             - name: FORGEJO__log__MODE
               value: console

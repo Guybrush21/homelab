@@ -53,6 +53,7 @@ let
 
     sqlite papra    /var/lib/homelab-data/papra/app-data/db/db.sqlite
     sqlite forgejo  /var/lib/homelab-data/forgejo/data/forgejo.db
+    sqlite taskchampion /var/lib/homelab-data/taskchampion/taskchampion-sync-server.sqlite3
     sqlite grafana  /var/lib/homelab-data/monitoring/grafana/grafana.db
     sqlite jellyfin /var/lib/homelab-data/jellyfin/config/data/data/jellyfin.db
 
@@ -96,6 +97,8 @@ in
       # Regenerable caches - Jellyfin's in particular gets large.
       "/var/lib/homelab-data/*/cache"
       "/var/lib/homelab-data/adguardhome/work/data/filters"
+      # Docker images pulled by the Forgejo runner's dind: re-pulled on demand.
+      "/var/lib/homelab-data/forgejo-runner"
       # Metrics and logs: large, churn every minute, and only worth anything
       # while the box is alive. Grafana's DB is still backed up.
       "/var/lib/homelab-data/monitoring/prometheus"

@@ -1,0 +1,160 @@
+# Forgejo runner - executes Forgejo Actions jobs for forgejo.elaine.pw. Two
+# containers: the runner itself and a docker-in-docker daemon (privileged) in
+# which the job containers run. The runner is registered with a shared secret
+# (see secret-runner.enc.yaml); nothing to click in the UI.
+#
+# To rotate the secret: keep the first 16 characters (they are the runner's
+# identity, the uuid below is their hex), change the last 24, re-run
+# `forgejo forgejo-cli actions register --secret ...` in the forgejo pod and
+# update the sops secret. See README, "Forgejo Actions".
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: forgejo-runner
+  namespace: homelab
+data:
+  config.yml: |
+    log:
+      level: info
+      job_level: info
+    runner:
+      capacity: 1
+      timeout: 3h
+      shutdown_timeout: 10m
+      # Jobs reach the dind daemon next door the same way the runner does.
+      envs:
+        DOCKER_HOST: tcp://localhost:2376
+        DOCKER_TLS_VERIFY: "1"
+        DOCKER_CERT_PATH: /certs/client
+      # `runs-on: docker` is a plain node image (actions/checkout needs node),
+      # `runs-on: ubuntu-latest` mimics GitHub's image. Not seen by Renovate:
+      # bump by hand.
+      labels:
+        - docker:docker://docker.io/library/node:22-bookworm
+        - ubuntu-latest:docker://ghcr.io/catthehacker/ubuntu:act-22.04
+    cache:
+      enabled: true
+      dir: /data/cache
+    container:
+      # Share the pod's network, so localhost:2376 works from inside a job.
+      network: host
+      options: -v /certs/client:/certs/client:ro
+      valid_volumes:
+        - /certs/client
+    server:
+      connections:
+        elaine:
+          url: https://forgejo.elaine.pw/
+          uuid: 61333961-3463-3731-3630-303932333963
+          token_url: file:/secrets/token
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forgejo-runner
+  namespace: homelab
+  labels:
+    app: forgejo-runner
+spec:
+  replicas: 1
+  strategy:
+    # One docker data dir, one daemon.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: forgejo-runner
+  template:
+    metadata:
+      labels:
+        app: forgejo-runner
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: runner
+          image: code.forgejo.org/forgejo/runner:13.2.1
+          command: ["/usr/bin/dumb-init", "--", "/bin/bash", "-c"]
+          args:
+            - |
+              until nc -z localhost 2376 </dev/null; do
+                echo 'waiting for docker daemon...'
+                sleep 2
+              done
+              exec forgejo-runner --config /config/config.yml daemon
+          env:
+            - name: DOCKER_HOST
+              value: tcp://localhost:2376
+            - name: DOCKER_CERT_PATH
+              value: /certs/client
+            - name: DOCKER_TLS_VERIFY
+              value: "1"
+            - name: TZ
+              value: Europe/Rome
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: secret
+              mountPath: /secrets
+              readOnly: true
+            - name: docker-certs
+              mountPath: /certs
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+        - name: dind
+          image: docker.io/docker:29.9.3-dind
+          env:
+            # TLS on 2376, client certs land in /certs/client.
+            - name: DOCKER_TLS_CERTDIR
+              value: /certs
+          volumeMounts:
+            - name: docker-certs
+              mountPath: /certs
+            - name: docker-data
+              mountPath: /var/lib/docker
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          securityContext:
+            privileged: true
+      volumes:
+        - name: config
+          configMap:
+            name: forgejo-runner
+        - name: secret
+          secret:
+            secretName: forgejo-runner
+        - name: docker-certs
+          emptyDir: {}
+        - name: data
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        # Pulled job images survive a pod restart. Excluded from restic in
+        # nixos/backup.nix: it is only a cache.
+        - name: docker-data
+          hostPath:
+            path: /var/lib/homelab-data/forgejo-runner/docker
+            type: DirectoryOrCreate

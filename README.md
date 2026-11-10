@@ -191,7 +191,7 @@ restic -r /mnt/murray/backup/restic --password-file /var/lib/homelab-data/secret
 
 Before every run `homelab-db-dump.service` writes consistent copies of the
 databases to `/var/lib/homelab-data/dumps/`: `pg_dumpall` for the Postgres
-pods (Immich, Umami), SQLite `.backup` for Papra, Forgejo, Grafana and Jellyfin. The raw
+pods (Immich, Umami), SQLite `.backup` for Papra, Forgejo, TaskChampion, Grafana and Jellyfin. The raw
 data dirs are still in the snapshot too, but those were copied while the
 database was writing, so **restore from the dumps**. If a dump fails the
 backup still runs (with the previous dump of that database) and the _Dump dei
@@ -234,9 +234,69 @@ TODO:
 | Shelfmark       | `shelfmark.elaine.pw` — book search     |
 | Papra           | `papra.elaine.pw` — documents           |
 | Forgejo         | `forgejo.elaine.pw` — git (https only)  |
+| Forgejo runner  | no UI — runs Actions jobs, see below    |
+| TaskChampion    | `tasks.elaine.pw` — Taskwarrior sync, no UI |
 | Minecraft       | `mc.elaine.pw` — game server            |
 | Deluge          | `deluge.elaine.pw` — torrents           |
 | Grafana         | `grafana.elaine.pw` — metrics, logs, alerts |
+
+## Forgejo Actions
+
+Forgejo Actions is on, with one runner in `k3s/apps/forgejo/runner.yaml`:
+a runner container plus a privileged docker-in-docker sidecar where the job
+containers run. It takes one job at a time. Labels:
+
+| `runs-on`       | image                                       |
+| --------------- | ------------------------------------------- |
+| `docker`        | `node:22-bookworm` - small, enough for most |
+| `ubuntu-latest` | `catthehacker/ubuntu:act-22.04` - GitHub-like |
+
+Workflows go in `.forgejo/workflows/*.yaml`, same syntax as GitHub Actions;
+`uses:` without a host resolves against `code.forgejo.org`. Jobs can talk to
+docker (build images, run containers) through `DOCKER_HOST`, which is already
+set. Pulled images live in `/var/lib/homelab-data/forgejo-runner/docker`, kept
+across restarts, excluded from restic: `docker system prune` in the `dind`
+container if it grows.
+
+The runner is registered with a **shared secret**, no token from the UI: 40
+hex characters, where the first 16 identify the runner (the `uuid` in the
+config is their hex) and the last 24 are the secret itself. The whole thing
+lives in `secret-runner.enc.yaml`. To rotate it, keep the first 16 characters,
+change the rest, and tell both sides:
+
+```bash
+kubectl -n homelab exec -i deploy/forgejo -- \
+  forgejo forgejo-cli actions register --name elaine --labels docker,ubuntu-latest --secret <40 hex>
+sops k3s/apps/forgejo/secret-runner.enc.yaml    # token: <same 40 hex>
+```
+
+The runner shows up under Site Administration → Actions → Runners. If a job
+sits in _waiting_, check the labels there against `runs-on`, then
+`kubectl -n homelab logs deploy/forgejo-runner -c runner`.
+
+## Taskwarrior
+
+`tasks.elaine.pw` is a [TaskChampion sync server](https://github.com/GothenburgBitFactory/taskchampion-sync-server),
+which is what Taskwarrior 3 talks to on `task sync`. No UI. Tasks are encrypted
+on the client, so the server only stores ciphertext; it also refuses any client
+id that isn't in `secret.enc.yaml`.
+
+Every device sharing the same task list uses the **same** client id and the
+**same** encryption secret. In `~/.taskrc`:
+
+```
+sync.server.url=https://tasks.elaine.pw
+sync.server.client_id=<CLIENT_ID from the secret>
+sync.encryption_secret=<anything long, kept in the password manager>
+```
+
+```bash
+sops -d k3s/apps/taskchampion/secret.enc.yaml   # CLIENT_ID
+```
+
+Lose the encryption secret and the server copy is unreadable: any device
+still holding the tasks can re-upload them with a new secret. A second, separate
+list (someone else's) is a new uuid appended to `CLIENT_ID`, comma-separated.
 
 ## Image updates
 

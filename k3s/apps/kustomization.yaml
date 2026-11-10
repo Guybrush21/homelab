@@ -13,4 +13,5 @@ resources:
   - shelfmark
   - papra
   - forgejo
+  - taskchampion
   - minecraft
