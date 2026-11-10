@@ -99,6 +99,9 @@ in
       "/var/lib/homelab-data/adguardhome/work/data/filters"
       # Docker images pulled by the Forgejo runner's dind: re-pulled on demand.
       "/var/lib/homelab-data/forgejo-runner"
+      # The web UI's Taskwarrior replica: a copy of what the sync server
+      # holds, re-downloaded on the next `task sync`.
+      "/var/lib/homelab-data/taskwarrior-webui"
       # Metrics and logs: large, churn every minute, and only worth anything
       # while the box is alive. Grafana's DB is still backed up.
       "/var/lib/homelab-data/monitoring/prometheus"

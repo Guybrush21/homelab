@@ -236,6 +236,7 @@ TODO:
 | Forgejo         | `forgejo.elaine.pw` — git (https only)  |
 | Forgejo runner  | no UI — runs Actions jobs, see below    |
 | TaskChampion    | `tasks.elaine.pw` — Taskwarrior sync, no UI |
+| Taskwarrior UI  | `taskwarrior.elaine.pw` — tasks (dashboard login) |
 | Minecraft       | `mc.elaine.pw` — game server            |
 | Deluge          | `deluge.elaine.pw` — torrents           |
 | Grafana         | `grafana.elaine.pw` — metrics, logs, alerts |
@@ -282,21 +283,29 @@ on the client, so the server only stores ciphertext; it also refuses any client
 id that isn't in `secret.enc.yaml`.
 
 Every device sharing the same task list uses the **same** client id and the
-**same** encryption secret. In `~/.taskrc`:
+**same** encryption secret, both in the secret. In `~/.taskrc`:
 
 ```
 sync.server.url=https://tasks.elaine.pw
-sync.server.client_id=<CLIENT_ID from the secret>
-sync.encryption_secret=<anything long, kept in the password manager>
+sync.server.client_id=<CLIENT_ID>
+sync.encryption_secret=<ENCRYPTION_SECRET>
 ```
 
 ```bash
-sops -d k3s/apps/taskchampion/secret.enc.yaml   # CLIENT_ID
+sops -d k3s/apps/taskchampion/secret.enc.yaml   # CLIENT_ID, ENCRYPTION_SECRET
 ```
 
 Lose the encryption secret and the server copy is unreadable: any device
 still holding the tasks can re-upload them with a new secret. A second, separate
 list (someone else's) is a new uuid appended to `CLIENT_ID`, comma-separated.
+
+The web UI at `taskwarrior.elaine.pw` ([taskwarrior-webui](https://github.com/DCsunset/taskwarrior-webui),
+behind the Traefik dashboard login) is just another client: its own replica in
+`/var/lib/homelab-data/taskwarrior-webui`, a taskrc written from the secret at
+start, and a `sync` sidecar running `task sync` every 2 minutes. So a change
+made on the laptop shows up there after the laptop's `task sync` plus up to
+2 minutes. The replica is disposable: delete the directory and it re-downloads
+everything on the next sync.
 
 ## Image updates
 

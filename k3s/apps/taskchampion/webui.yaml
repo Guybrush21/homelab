@@ -1,0 +1,159 @@
+# Taskwarrior web UI (DCsunset/taskwarrior-webui). For the sync server it is
+# just one more client: a `task` binary with its own replica in /.task, using
+# the same client id and encryption secret as every other device. It talks to
+# the server over the Service, never leaving the cluster.
+#
+# No login of its own: the Traefik dashboard's basic auth sits in front.
+# Runs as root, the image's nginx wants it.
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskwarrior-webui
+  namespace: homelab
+  labels:
+    app: taskwarrior-webui
+spec:
+  replicas: 1
+  strategy:
+    # One replica dir, one writer.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: taskwarrior-webui
+  template:
+    metadata:
+      labels:
+        app: taskwarrior-webui
+    spec:
+      automountServiceAccountToken: false
+      initContainers:
+        # The taskrc is rebuilt from the secret on every start. CLIENT_ID is
+        # the server's allowlist, so take the first id if there are several.
+        - name: taskrc
+          image: dcsunset/taskwarrior-webui:20261104
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              cat > /taskrc/taskrc <<EOF
+              sync.server.url=http://taskchampion:8080
+              sync.server.client_id=${CLIENT_ID%%,*}
+              sync.encryption_secret=${ENCRYPTION_SECRET}
+              confirmation=no
+              EOF
+          envFrom:
+            - secretRef:
+                name: taskchampion
+          volumeMounts:
+            - name: taskrc
+              mountPath: /taskrc
+      containers:
+        - name: webui
+          image: dcsunset/taskwarrior-webui:20261104
+          env:
+            - name: TASKRC
+              value: /taskrc/taskrc
+            - name: TZ
+              value: Europe/Rome
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: data
+              mountPath: /.task
+            - name: taskrc
+              mountPath: /taskrc
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 30
+        # The UI's own "Auto Sync" setting runs in the browser, so only while
+        # the page is open. This keeps the replica fresh for when it's opened.
+        - name: sync
+          image: dcsunset/taskwarrior-webui:20261104
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              while true; do
+                task sync || echo 'task sync failed'
+                sleep 120
+              done
+          env:
+            - name: TASKRC
+              value: /taskrc/taskrc
+            - name: TZ
+              value: Europe/Rome
+          volumeMounts:
+            - name: data
+              mountPath: /.task
+            - name: taskrc
+              mountPath: /taskrc
+              readOnly: true
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/homelab-data/taskwarrior-webui
+            type: Directory
+        - name: taskrc
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskwarrior-webui
+  namespace: homelab
+spec:
+  type: ClusterIP
+  selector:
+    app: taskwarrior-webui
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+# IngressRoute
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: taskwarrior-webui
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`taskwarrior.elaine.pw`)
+      kind: Rule
+      middlewares:
+        - name: dashboard-auth
+          namespace: traefik
+      services:
+        - name: taskwarrior-webui
+          port: 80
+  tls:
+    certResolver: cloudflare
